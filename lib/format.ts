@@ -1,5 +1,8 @@
 export const LOCALE = "es-AR";
 export const TIME_ZONE = "America/Argentina/Buenos_Aires";
+// Argentina has used a fixed UTC-3 offset (no DST) since 2009, so this can be hardcoded
+// rather than computed from the IANA database.
+const ARGENTINA_UTC_OFFSET = "-03:00";
 
 const dateFormat = new Intl.DateTimeFormat(LOCALE, {
   timeZone: TIME_ZONE,
@@ -100,4 +103,17 @@ export function formatDecimal(n: number, digits = 1): string {
 
 export function formatPercent(ratio: number): string {
   return percentFormat.format(ratio);
+}
+
+/**
+ * Interprets a `<input type="datetime-local">` value ("YYYY-MM-DDTHH:mm[:ss]", no
+ * timezone) as Argentina wall-clock time and returns the equivalent UTC ISO string.
+ */
+export function toArgentinaIso(localValue: string): string {
+  const match = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.exec(localValue);
+  if (!match) throw new RangeError(`Invalid local datetime: ${String(localValue)}`);
+  const withSeconds = match[1] ? localValue : `${localValue}:00`;
+  const date = new Date(`${withSeconds}${ARGENTINA_UTC_OFFSET}`);
+  if (Number.isNaN(date.getTime())) throw new RangeError(`Invalid local datetime: ${String(localValue)}`);
+  return date.toISOString();
 }

@@ -8,6 +8,7 @@ import {
   formatPercent,
   formatRelative,
   formatTime,
+  toArgentinaIso,
 } from "./format";
 import { es } from "@/messages/es";
 
@@ -103,6 +104,26 @@ describe("format helpers (es-AR / America/Argentina/Buenos_Aires)", () => {
 
   it("formatPercent renders a percent sign", () => {
     expect(normalizeSpaces(formatPercent(0.4))).toBe("40%");
+  });
+
+  describe("toArgentinaIso", () => {
+    it("interprets a datetime-local value as Buenos Aires time (UTC-3)", () => {
+      expect(toArgentinaIso("2026-10-01T20:00")).toBe("2026-10-01T23:00:00.000Z");
+    });
+
+    it("accepts a value that already includes seconds", () => {
+      expect(toArgentinaIso("2026-10-01T20:00:15")).toBe("2026-10-01T23:00:15.000Z");
+    });
+
+    it("round-trips through formatDateTime back to the same wall-clock time", () => {
+      const iso = toArgentinaIso("2026-10-01T20:00");
+      expect(formatTime(iso)).toBe("20:00");
+    });
+
+    it("throws RangeError on a malformed value", () => {
+      expect(() => toArgentinaIso("not-a-datetime")).toThrow(RangeError);
+      expect(() => toArgentinaIso("2026-10-01")).toThrow(RangeError);
+    });
   });
 });
 
