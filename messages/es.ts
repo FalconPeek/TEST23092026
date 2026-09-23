@@ -159,6 +159,32 @@ export const es = {
     member: "Jugador",
     spectator: "Espectador",
   },
+  errors: {
+    unauthenticated: "Tenés que iniciar sesión.",
+    forbidden: "No tenés permiso para hacer esto.",
+    notMember: "No sos miembro de este grupo.",
+    inviteInvalid: "La invitación no es válida.",
+    inviteExpired: "La invitación venció.",
+    inviteRevoked: "La invitación fue revocada.",
+    inviteUsedUp: "La invitación ya alcanzó su límite de usos.",
+    validation: "Revisá los datos ingresados.",
+    ownerCannotLeave: "Transferí el grupo a otro miembro antes de salir.",
+    ownerCannotBeRemoved: "No se puede quitar al dueño del grupo.",
+  },
+  groups: {
+    created: "Grupo creado",
+    updated: "Cambios guardados",
+    inviteCreated: "Invitación creada",
+    inviteRevoked: "Invitación revocada",
+    joined: "¡Te sumaste al grupo!",
+    roleChanged: "Rol actualizado",
+    memberRemoved: "Se quitó al miembro del grupo",
+    left: "Saliste del grupo",
+    guestAdded: "Invitado agregado",
+    guestClaimed: "Jugador reclamado",
+    ownershipTransferred: "Se transfirió la titularidad del grupo",
+    playerUpdated: "Jugador actualizado",
+  },
 } as const;
 
 export type Messages = typeof es;
