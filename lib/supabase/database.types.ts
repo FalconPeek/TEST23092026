@@ -89,6 +89,30 @@ export type Database = {
           },
         ]
       }
+      badges: {
+        Row: {
+          category: string
+          code: string
+          icon: string
+          name_key: string
+          sort: number
+        }
+        Insert: {
+          category: string
+          code: string
+          icon: string
+          name_key: string
+          sort?: number
+        }
+        Update: {
+          category?: string
+          code?: string
+          icon?: string
+          name_key?: string
+          sort?: number
+        }
+        Relationships: []
+      }
       collusion_flags: {
         Row: {
           flagged_at: string
@@ -554,6 +578,44 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          group_id: string | null
+          id: string
+          kind: string
+          payload: Json
+          read_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id?: string | null
+          id?: string
+          kind: string
+          payload?: Json
+          read_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string | null
+          id?: string
+          kind?: string
+          payload?: Json
+          read_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       openskill_ratings: {
         Row: {
           matches_played: number
@@ -585,6 +647,62 @@ export type Database = {
             columns: ["player_id"]
             isOneToOne: true
             referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      player_badges: {
+        Row: {
+          awarded_at: string
+          badge_code: string
+          count: number
+          match_id: string | null
+          player_id: string
+          tournament_id: string | null
+        }
+        Insert: {
+          awarded_at?: string
+          badge_code: string
+          count?: number
+          match_id?: string | null
+          player_id: string
+          tournament_id?: string | null
+        }
+        Update: {
+          awarded_at?: string
+          badge_code?: string
+          count?: number
+          match_id?: string | null
+          player_id?: string
+          tournament_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_badges_badge_code_fkey"
+            columns: ["badge_code"]
+            isOneToOne: false
+            referencedRelation: "badges"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "player_badges_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_badges_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_badges_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
             referencedColumns: ["id"]
           },
         ]
@@ -743,18 +861,54 @@ export type Database = {
           created_at: string
           display_name: string
           id: string
+          notification_prefs: Json
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
           display_name: string
           id: string
+          notification_prefs?: Json
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
           display_name?: string
           id?: string
+          notification_prefs?: Json
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          last_used_at: string | null
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          last_used_at?: string | null
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          last_used_at?: string | null
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -1429,6 +1583,10 @@ export type Database = {
         }
         Returns: string
       }
+      delete_push_subscription: {
+        Args: { p_endpoint: string }
+        Returns: undefined
+      }
       edit_match_result: {
         Args: {
           p_decided_by?: Database["public"]["Enums"]["tournament_decided_by"]
@@ -1440,6 +1598,17 @@ export type Database = {
           p_winner_entry_id?: string
         }
         Returns: undefined
+      }
+      get_group_leaderboard: {
+        Args: { p_group_id: string; p_limit?: number; p_metric: string }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          matches_played: number
+          player_id: string
+          rank: number
+          value: number
+        }[]
       }
       get_invite_preview: {
         Args: { p_code: string }
@@ -1459,6 +1628,7 @@ export type Database = {
           side: number
         }[]
       }
+      get_my_dashboard: { Args: { p_group_id: string }; Returns: Json }
       get_my_scouting_ballot: {
         Args: { p_target_player_id: string }
         Returns: {
@@ -1468,6 +1638,7 @@ export type Database = {
           value: number
         }[]
       }
+      get_player_impacto: { Args: { p_player_id: string }; Returns: number }
       get_scouting_status: {
         Args: { p_target_player_id: string }
         Returns: {
@@ -1485,6 +1656,7 @@ export type Database = {
         }
         Returns: string
       }
+      mark_notifications_read: { Args: { p_ids?: string[] }; Returns: number }
       persist_bracket: {
         Args: { p_payload: Json; p_tournament_id: string }
         Returns: undefined
@@ -1508,6 +1680,15 @@ export type Database = {
         Returns: undefined
       }
       revoke_invite: { Args: { p_invite_id: string }; Returns: undefined }
+      save_push_subscription: {
+        Args: {
+          p_auth: string
+          p_endpoint: string
+          p_p256dh: string
+          p_user_agent?: string
+        }
+        Returns: string
+      }
       save_tournament_entries: {
         Args: { p_entries: Json; p_tournament_id: string }
         Returns: undefined
@@ -1599,6 +1780,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_notification_prefs: { Args: { p_prefs: Json }; Returns: undefined }
       update_player: {
         Args: {
           p_alt_positions?: string[]
