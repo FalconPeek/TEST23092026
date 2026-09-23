@@ -3,6 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { DangerZone } from "@/components/settings/danger-zone";
+import { GroupSettingsForm } from "@/components/settings/group-settings-form";
 import { GuestPlayers } from "@/components/settings/guest-players";
 import { InviteForm } from "@/components/settings/invite-form";
 import { InviteList } from "@/components/settings/invite-list";
@@ -10,6 +11,7 @@ import { MemberActions } from "@/components/settings/member-actions";
 import { es } from "@/messages/es";
 import { createClient, getUserId } from "@/lib/supabase/server";
 import { isGroupAdmin, type GroupRole } from "@/lib/permissions";
+import { parseGroupSettings } from "@/lib/settings/group";
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).slice(0, 2);
@@ -70,8 +72,23 @@ export default async function GroupSettingsPage({ params }: PageProps<"/g/[group
         .order("created_at", { ascending: false })
     : { data: null };
 
+  const { data: group } = admin
+    ? await supabase.from("groups").select("name, settings").eq("id", groupId).maybeSingle()
+    : { data: null };
+
   return (
     <div className="flex flex-col gap-6 px-4 py-6">
+      {admin && group && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-medium text-muted-foreground">{es.groupSettings.heading}</h2>
+          <GroupSettingsForm
+            groupId={groupId}
+            initialName={group.name}
+            initialSettings={parseGroupSettings(group.settings)}
+          />
+        </section>
+      )}
+
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-medium text-muted-foreground">{es.settings.members.heading}</h2>
         <Card>
