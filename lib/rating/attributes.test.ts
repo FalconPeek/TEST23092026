@@ -55,6 +55,13 @@ describe("face stat weights", () => {
     expect(result.pac).toBeCloseTo(50, 9);
   });
 
+  it("card face stats are rounded to integers", () => {
+    // pas = .35·70 + .20·71 + … is fractional before rounding.
+    const result = computeOutfieldFaceStats({ short_passing: 70, vision: 71, crossing: 69, long_passing: 72, curve: 68, free_kick: 67 }, 50);
+    for (const v of Object.values(result)) expect(Number.isInteger(v)).toBe(true);
+    expect(computeGkFaceStats({ sprint_speed: 71, acceleration: 70 }, 50).spd).toBe(71);
+  });
+
   it("computeGkFaceStats maps gk_* 1:1 and spd from the pac formula", () => {
     const result = computeGkFaceStats(
       { gk_diving: 70, gk_handling: 65, gk_kicking: 55, gk_reflexes: 75, gk_positioning: 68, sprint_speed: 60, acceleration: 60 },

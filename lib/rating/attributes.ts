@@ -118,7 +118,7 @@ export function computeGkFaceStats(
     kic: attributes.gk_kicking ?? fallback,
     ref: attributes.gk_reflexes ?? fallback,
     pos: attributes.gk_positioning ?? fallback,
-    spd: computeFaceStat("pac", attributes, fallback),
+    spd: Math.round(computeFaceStat("pac", attributes, fallback)),
   };
 }
 
@@ -128,7 +128,8 @@ export function computeOutfieldFaceStats(
 ): Record<OutfieldFaceStat, number> {
   const out = {} as Record<OutfieldFaceStat, number>;
   for (const stat of OUTFIELD_FACE_STATS) {
-    out[stat] = computeFaceStat(stat, attributes, fallback);
+    // Card face stats are whole numbers, like OVR.
+    out[stat] = Math.round(computeFaceStat(stat, attributes, fallback));
   }
   return out;
 }

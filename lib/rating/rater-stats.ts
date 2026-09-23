@@ -26,8 +26,19 @@ export interface RaterStat {
  * Per-rater bias (mean residual) and RMSE-based reliability 2/(1+(RMSE/σ)²), clamped to
  * [reliability_min, reliability_max]. `sigmaGroup` is the group-wide residual stdev used to
  * normalize RMSE into a reliability multiplier; defaults to the stdev of all input residuals.
+ *
+ * `rawVoteCounts`, when supplied, overrides the bias_min_votes gate (and the persisted nVotes)
+ * with a caller-computed count of raw ballots per rater — needed because one quick-mode ballot
+ * can expand into many `residuals` entries (one per sub-attribute it feeds), which would
+ * otherwise make bias_min_votes trigger far too early. Falls back to `values.length` (the
+ * residual count) when not supplied, preserving old behavior for detailed-only callers.
  */
-export function raterStats(residuals: RaterResidual[], settings: RatingSettings, sigmaGroup?: number): Map<string, RaterStat> {
+export function raterStats(
+  residuals: RaterResidual[],
+  settings: RatingSettings,
+  sigmaGroup?: number,
+  rawVoteCounts?: Map<string, number>,
+): Map<string, RaterStat> {
   const byRater = new Map<string, number[]>();
   for (const { raterId, residual } of residuals) {
     const list = byRater.get(raterId) ?? [];
@@ -38,7 +49,7 @@ export function raterStats(residuals: RaterResidual[], settings: RatingSettings,
   const sigma = sigmaGroup ?? stdDev(residuals.map((r) => r.residual));
   const result = new Map<string, RaterStat>();
   for (const [raterId, values] of byRater) {
-    const nVotes = values.length;
+    const nVotes = rawVoteCounts?.get(raterId) ?? values.length;
     const bias = nVotes >= settings.bias_min_votes ? mean(values) : 0;
     const rmse = Math.sqrt(mean(values.map((v) => v ** 2)));
     // 2/(1+x²): a typical rater (RMSE = σ) weighs 1, precise raters up to reliability_max,

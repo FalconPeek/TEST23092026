@@ -52,6 +52,26 @@ describe("raterStats", () => {
     expect(stat.rmse).toBe(7);
   });
 
+  it("gates on rawVoteCounts instead of the residual count when supplied", () => {
+    // Simulates one rater's 3 raw (quick-mode) ballots expanding into 12 residual entries
+    // (e.g. pas + sho + def sub-attributes): residuals.length alone would clear bias_min_votes
+    // (10), but the true raw ballot count (3) must not.
+    const residuals = Array.from({ length: 12 }, () => ({ raterId: "r1", residual: 10 }));
+    const rawVoteCounts = new Map([["r1", 3]]);
+    const stat = raterStats(residuals, settings, undefined, rawVoteCounts).get("r1")!;
+    expect(stat.nVotes).toBe(3);
+    expect(stat.bias).toBe(0);
+    expect(stat.reliability).toBe(1);
+  });
+
+  it("rawVoteCounts can also let a rater qualify sooner than their residual count would", () => {
+    const residuals = Array.from({ length: 5 }, () => ({ raterId: "r1", residual: 4 }));
+    const rawVoteCounts = new Map([["r1", 10]]);
+    const stat = raterStats(residuals, settings, undefined, rawVoteCounts).get("r1")!;
+    expect(stat.nVotes).toBe(10);
+    expect(stat.bias).toBeCloseTo(4, 9);
+  });
+
   it("keeps separate stats per rater", () => {
     const residuals = [
       ...Array.from({ length: 10 }, () => ({ raterId: "a", residual: 5 })),

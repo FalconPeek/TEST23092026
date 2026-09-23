@@ -10,6 +10,7 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:dbint": "node -e \"process.env.RUN_DB_TESTS='1';require('child_process').execSync('npx vitest run lib/server',{stdio:'inherit',env:process.env})\"",
     "test:db": "supabase test db",
     "e2e": "playwright test",
     "db:types": "supabase gen types typescript --local --schema public > lib/supabase/database.types.ts",
