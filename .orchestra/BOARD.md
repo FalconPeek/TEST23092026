@@ -13,7 +13,7 @@ Current milestone: **M1 UI → M2/M3 UI** (M0 done; dev on local Supabase stack)
 | T-007 | invite page /invitacion/[code] | M1 | verified | deps T-006 |
 | T-008 | admin page: members, invites, guests | M1 | verified | deps T-007 |
 | T-009 | group settings form + player profile editor | M1 | verified | deps T-008 |
-| T-010 | scouting + match actions, playstyle codes, error codes | M2/M3 | in_progress | deps T-009 |
+| T-010 | scouting + match actions, playstyle codes, error codes | M2/M3 | verified | deps T-009 |
 | T-011 | player profile: card, radar, attributes, stats | M2 | todo | deps T-010 |
 | T-012 | scouting vote page | M2 | todo | deps T-011 |
 | T-013 | matches list/create/lineup + auto-balance | M3 | todo | deps T-012 |
