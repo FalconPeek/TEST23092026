@@ -22,11 +22,13 @@ npm run typecheck    # tsc --noEmit
 npm test             # vitest run (unit: engines, components)
 npx vitest run lib/brackets/single-elim.test.ts   # single test file
 npx vitest run -t "byes go to top seeds"          # single test by name
-npm run test:db      # pgTAP RLS/RPC tests (supabase test db --linked, or local stack if running)
-npm run e2e          # Playwright against the dev Supabase project
-npm run db:types     # regenerate lib/supabase/database.types.ts from the linked project
+npm run test:db      # pgTAP RLS/RPC tests against the local stack (supabase test db)
+npm run e2e          # Playwright against the local stack
+npm run db:types     # regenerate lib/supabase/database.types.ts from the local stack
+npm run db:reset     # re-apply all migrations + seed on the local stack
 npx supabase migration new <name>   # new migration in supabase/migrations
-npx supabase db push                # apply migrations to the linked dev project
+npx supabase start / stop / status  # local stack (Docker). Studio :54323, Mailpit (magic links) :54324, DB :54322
+npx supabase migration up           # apply pending migrations locally without a reset
 ```
 
 Before declaring any task done: `npm run lint && npm run typecheck && npm test` must pass; if you touched SQL also `npm run test:db`; if you touched routes/config also `npm run build`.
@@ -39,7 +41,7 @@ Before declaring any task done: `npm run lint && npm run typecheck && npm test` 
 - Supabase: `@supabase/ssr` + `@supabase/supabase-js`. Keys: `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (sb_publishable_…), `SUPABASE_SECRET_KEY` (sb_secret_…, server only, bypasses RLS).
 - zod 4 (all input validation + settings schemas), Recharts 3 (radar/line charts), `openskill` (Plackett-Luce), `web-push` + Serwist (Turbopack) for PWA/push, `next/og` for card images.
 - Tests: Vitest + Testing Library + jsdom (unit/components), pgTAP + basejump test helpers (DB), Playwright (e2e). ESLint flat config. npm.
-- Infra: Supabase cloud (dev project `picado-dev`, prod later), Vercel Hobby. pg_cron for time-window finalization.
+- Infra: **local Supabase stack via Docker for dev** (cloud free-project limit reached; `.env.local` points at http://127.0.0.1:54321; `auto_expose_new_tables = false` so GRANTs are required, matching cloud); prod cloud project + Vercel Hobby decided at M6. pg_cron for time-window finalization.
 - No next-intl (strings live in `messages/es.ts`), no React Query (RSC reads + Server Actions + `revalidatePath`; Supabase Realtime for live views).
 
 ## Architecture
