@@ -85,7 +85,7 @@ Principles:
 - `groups(id, name, slug, owner_id, settings jsonb, created_at)` — settings validated by `lib/settings/group.ts`
 - `group_members(group_id, user_id, role: owner|admin|member|spectator, joined_at)` PK(group_id,user_id)
 - `invites(id, group_id, code unique, role default member, created_by, expires_at, max_uses, uses)`
-- `players(id, group_id, user_id nullable, display_name, avatar_url, is_guest, claimed_at, primary_position, alt_positions text[], preferred_foot left|right|both, height_cm, created_at)` — a person's identity *within a group*; guests have `user_id null`
+- `players(id, group_id, user_id nullable, display_name, avatar_url, is_guest, claimed_at, primary_position, alt_positions text[], preferred_foot left|right|both, height_cm, created_at)` — a person's identity *within a group*; **every member (incl. spectators) has one**; guests have `user_id null`; leaving sets `user_id null` + `left_at` (history kept)
 - `scouting_votes(id, group_id, rater_player_id, target_player_id, attribute, value 1–10, mode quick|detailed, created_at)` — one current ballot per (rater,target,attribute); history kept via `superseded_at`
 - `playstyle_votes(rater_player_id, target_player_id, playstyle, created_at)`, `star_votes(rater, target, kind weak_foot|skill_moves, value 1–5)`
 - `matches(id, group_id, tournament_match_id nullable, kind 'real', team_size, scheduled_at, played_at, venue, status scheduled|reporting|disputed|pending_finalize|finalized|cancelled, report_deadline, rating_deadline, created_by)`
@@ -142,7 +142,7 @@ All tunables live in zod schemas with defaults: `lib/settings/group.ts` (rating 
 ## Security rules (non-negotiable)
 
 - Every table: `enable row level security` + **explicit GRANTs** (new Supabase projects don't auto-expose tables) + one policy per operation (`select`/`insert`/`update`/`delete`), `to authenticated`, `(select auth.uid())` wrapped, index on every column used in policies. No `for all` policies. anon gets nothing except what's explicitly needed (nothing, currently).
-- Derived tables: `grant select` only; no insert/update/delete grants for `authenticated`. Written by SECURITY DEFINER functions or the admin client.
+- Derived tables: `grant select` only; no insert/update/delete grants for `authenticated`. Written by SECURITY DEFINER functions or the admin client. Migrations do NOT give `service_role` DML by default: any table the admin client writes needs an explicit `grant select, insert, update, delete … to service_role`.
 - Vote/rating/report tables: no direct insert grants; writes only via RPCs (`submit_scouting_vote`, `submit_match_rating`, `submit_score_report`, `submit_stat_report`, …) that check membership, role, participation, windows, no-self-rating, value ranges.
 - Votes are anonymous: select policy on vote tables = own rows only. Aggregates exposed via derived tables with counts.
 - SECURITY DEFINER functions: `set search_path = ''`, fully-qualified names, `revoke execute … from public, anon`, grant to `authenticated` only where meant to be called by users. Helpers live in `private` schema.

@@ -4,6 +4,8 @@ import type { Database } from "./database.types";
 import { supabasePublishableKey, supabaseUrl } from "./env";
 
 const PUBLIC_PATHS = ["/login", "/auth", "/invitacion", "/manifest.webmanifest", "/api/cron", "/api/og"];
+// Component previews (/dev/*) 404 in production builds; keep them reachable without a session in dev.
+const DEV_PUBLIC_PATHS = process.env.NODE_ENV === "production" ? [] : ["/dev"];
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -25,7 +27,7 @@ export async function updateSession(request: NextRequest) {
   const signedIn = Boolean(data?.claims?.sub);
 
   const { pathname, search } = request.nextUrl;
-  const isPublic = pathname === "/" || PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  const isPublic = pathname === "/" || [...PUBLIC_PATHS, ...DEV_PUBLIC_PATHS].some((p) => pathname === p || pathname.startsWith(`${p}/`));
   if (!signedIn && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
