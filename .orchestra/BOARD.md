@@ -14,11 +14,16 @@ Current milestone: **M1 UI → M2/M3 UI** (M0 done; dev on local Supabase stack)
 | T-008 | admin page: members, invites, guests | M1 | verified | deps T-007 |
 | T-009 | group settings form + player profile editor | M1 | verified | deps T-008 |
 | T-010 | scouting + match actions, playstyle codes, error codes | M2/M3 | verified | deps T-009 |
-| T-011 | player profile: card, radar, attributes, stats | M2 | todo | deps T-010 |
+| T-011 | player profile: card, radar, attributes, stats | M2 | in_progress | deps T-010 |
 | T-012 | scouting vote page | M2 | todo | deps T-011 |
 | T-013 | matches list/create/lineup + auto-balance | M3 | todo | deps T-012 |
 | T-014 | match detail: report score/stats, rate players | M3 | todo | deps T-013 |
 | T-015 | disputes, finalize button, final result | M3 | todo | deps T-014; lib/actions/finalize.ts ready |
+| T-016 | tournaments: M4 error strings, list, create form | M4 | todo | deps T-015 |
+| T-017 | tournament hub: status, registrations, entries, generate | M4 | todo | deps T-016 |
+| T-018 | bracket view + match result actions + realtime | M4 | todo | deps T-017 |
+| T-019 | standings tables + fixtures | M4 | todo | deps T-018 |
+| T-020 | polish: Verifier notes T-008/T-009 | M1 | todo | deps T-019 |
 
 FATHER side:
 - DONE: lib/settings, M1 schema (8 migrations, 77 pgTAP), lib/rating + lib/reconcile (151 tests) — commit 0b97cd8.
@@ -28,9 +33,6 @@ FATHER side:
 - DONE: service_role read grants (aac0372); lib/server recompute pipeline, live-smoke verified (2e06366).
 - DONE: M4 tournament schema (6 migrations, pgTAP 020-022, 313 assertions total) — bd6bbdf. No standings table (computed on read via lib/brackets standings()).
 - DONE: match finalizer (lib/server/finalize*, lib/actions/finalize.ts finalizeMatchNow, /api/cron/finalize Bearer) — dc8165c. Note: test:dbint leaves 1 group + 5 users per run (no delete path); cleared by db:reset or manual SQL.
-- IN PROGRESS (subagent): tournament server layer lib/server/tournament*.ts + lib/actions/tournaments.ts + finalizer→confirm_match_result hook.
-- NEXT: M4 UI Worker tasks (T-016+), strings for M4 error codes.
+- DONE: tournament server layer (lib/server/tournament*, lib/actions/tournaments.ts, finalizer auto-advance) — e840b18. Realtime publication (tournament_matches, tournaments, matches) — 0bfb2b6.
+- NEXT (FATHER): M5 — leaderboards/Impacto percentile, badges engine + awarding in finalizer, push notifications (web-push + Serwist), share-card next/og, dashboard data.
 
-Backlog (Verifier notes → future polish task):
-- T-009: settings number input cleared → 0 (should show error); profile form can't clear height/foot; "Avanzado" labels are humanized English keys → add es.groupSettings.advanced.*.
-- T-008: transfer-ownership list includes spectators (allowed by SQL; UX decision).
