@@ -8,3 +8,4 @@ export * from "./form";
 export * from "./card";
 export * from "./openskill";
 export * from "./balance";
+export * from "./playstyles";

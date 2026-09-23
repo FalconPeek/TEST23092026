@@ -172,6 +172,13 @@ export const es = {
     validation: "Revisá los datos ingresados.",
     ownerCannotLeave: "Transferí el grupo a otro miembro antes de salir.",
     ownerCannotBeRemoved: "No se puede quitar al dueño del grupo.",
+    selfVote: "No podés votarte a vos mismo.",
+    spectator: "Los espectadores no pueden hacer esto.",
+    noSharedMatch: "Tenés que haber jugado un partido con este jugador para votarlo.",
+    cooldown: "Ya votaste a este jugador hace poco. Vas a poder volver a votar más adelante.",
+    targetLeft: "Este jugador ya no está en el grupo.",
+    notParticipant: "No participaste de este partido.",
+    deadlinePassed: "El plazo para cargar esto ya cerró.",
   },
   groups: {
     myGroups: "Mis grupos",
@@ -309,6 +316,19 @@ export const es = {
       confirmLeaveTitle: "¿Salir del grupo?",
       confirmLeaveBody: "Vas a perder acceso hasta que te vuelvan a invitar.",
     },
+  },
+  scouting: {
+    saved: "¡Voto guardado!",
+  },
+  matches: {
+    created: "Partido creado",
+    lineupSaved: "Equipos guardados",
+    reportingStarted: "Partido cerrado: ya se pueden cargar resultados",
+    cancelled: "Partido cancelado",
+    scoreSaved: "Resultado cargado",
+    statsSaved: "Estadísticas cargadas",
+    ratingsSaved: "Puntajes enviados",
+    disputeResolved: "Disputa resuelta",
   },
   invite: {
     title: "Te invitaron a un grupo",

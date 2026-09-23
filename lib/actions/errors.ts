@@ -25,5 +25,33 @@ export function mapDbError(error: { message?: string } | null | undefined): stri
     return es.errors.validation;
   }
 
+  if (message.startsWith("PICADO_SELF_VOTE:")) {
+    return es.errors.selfVote;
+  }
+
+  if (message.startsWith("PICADO_SPECTATOR:")) {
+    return es.errors.spectator;
+  }
+
+  if (message.startsWith("PICADO_NO_SHARED_MATCH:")) {
+    return es.errors.noSharedMatch;
+  }
+
+  if (message.startsWith("PICADO_COOLDOWN:")) {
+    return es.errors.cooldown;
+  }
+
+  if (message.startsWith("PICADO_TARGET_LEFT:")) {
+    return es.errors.targetLeft;
+  }
+
+  if (message.startsWith("PICADO_NOT_PARTICIPANT:")) {
+    return es.errors.notParticipant;
+  }
+
+  if (message.startsWith("PICADO_DEADLINE_PASSED:")) {
+    return es.errors.deadlinePassed;
+  }
+
   return es.common.error;
 }

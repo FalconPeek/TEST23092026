@@ -65,4 +65,46 @@ describe("mapDbError", () => {
       mapDbError({ message: "PICADO_VALIDATION: group name must be between 1 and 60 characters" }),
     ).toBe(es.errors.validation);
   });
+
+  it("maps PICADO_SELF_VOTE to selfVote", () => {
+    expect(mapDbError({ message: "PICADO_SELF_VOTE: you cannot vote for yourself" })).toBe(
+      es.errors.selfVote,
+    );
+  });
+
+  it("maps PICADO_SPECTATOR to spectator", () => {
+    expect(mapDbError({ message: "PICADO_SPECTATOR: spectators cannot cast scouting votes" })).toBe(
+      es.errors.spectator,
+    );
+  });
+
+  it("maps PICADO_NO_SHARED_MATCH to noSharedMatch", () => {
+    expect(
+      mapDbError({ message: "PICADO_NO_SHARED_MATCH: you need to share a match with this player first" }),
+    ).toBe(es.errors.noSharedMatch);
+  });
+
+  it("maps PICADO_COOLDOWN to cooldown", () => {
+    expect(mapDbError({ message: "PICADO_COOLDOWN: you must wait before revoting this player" })).toBe(
+      es.errors.cooldown,
+    );
+  });
+
+  it("maps PICADO_TARGET_LEFT to targetLeft", () => {
+    expect(mapDbError({ message: "PICADO_TARGET_LEFT: target player has left the group" })).toBe(
+      es.errors.targetLeft,
+    );
+  });
+
+  it("maps PICADO_NOT_PARTICIPANT to notParticipant", () => {
+    expect(
+      mapDbError({ message: "PICADO_NOT_PARTICIPANT: you are not a participant of this match" }),
+    ).toBe(es.errors.notParticipant);
+  });
+
+  it("maps PICADO_DEADLINE_PASSED to deadlinePassed", () => {
+    expect(mapDbError({ message: "PICADO_DEADLINE_PASSED: the report window has closed" })).toBe(
+      es.errors.deadlinePassed,
+    );
+  });
 });
