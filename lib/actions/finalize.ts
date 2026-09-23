@@ -59,6 +59,11 @@ export async function finalizeMatchNow(input: { matchId: string }): Promise<Acti
     return fail(es.common.error);
   }
 
+  // The tournament sync error is a raw DB message; only a mapped string may reach the client.
+  if (outcome.status === "finalized" && outcome.tournamentSyncError) {
+    outcome = { ...outcome, tournamentSyncError: mapDbError({ message: outcome.tournamentSyncError }) };
+  }
+
   revalidatePath(`/g/${matchRow.group_id}/partidos`);
   revalidatePath(`/g/${matchRow.group_id}/partidos/${parsed.data.matchId}`);
 

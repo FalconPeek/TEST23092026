@@ -37,6 +37,10 @@ class FakeFinalizeRepo implements FinalizeRepo {
   finalizedMatchIds: { matchId: string; finalizedAt: Date }[] = [];
   auditLogs: { matchId: string; action: string; payload: unknown }[] = [];
   recomputeCalls: RecomputeCall[] = [];
+  confirmedTournamentMatches: { tournamentMatchId: string; score1: number; score2: number }[] = [];
+  advancedTournaments: string[] = [];
+  /** Set to make confirmTournamentMatchResult reject, e.g. to simulate PICADO_KO_DRAW. */
+  tournamentConfirmError: string | null = null;
 
   async loadPendingFinalizeMatchIds(now: Date) {
     return [...this.graphs.values()]
@@ -96,6 +100,15 @@ class FakeFinalizeRepo implements FinalizeRepo {
   async recomputeCard(playerId: string, now: Date, formMatches: MatchFormInput[]) {
     this.recomputeCalls.push({ playerId, now, formMatches });
   }
+
+  async confirmTournamentMatchResult(tournamentMatchId: string, result: { score1: number; score2: number }) {
+    if (this.tournamentConfirmError) throw new Error(this.tournamentConfirmError);
+    this.confirmedTournamentMatches.push({ tournamentMatchId, score1: result.score1, score2: result.score2 });
+  }
+
+  async advanceTournament(tournamentId: string) {
+    this.advancedTournaments.push(tournamentId);
+  }
 }
 
 const PLAYED_AT = new Date("2026-01-01T20:00:00Z");
@@ -120,6 +133,8 @@ function baseGraph(overrides: Partial<MatchGraph> = {}): MatchGraph {
     statReports: [],
     ratings: [],
     disputeResolution: null,
+    tournamentMatchId: null,
+    tournamentId: null,
     ...overrides,
   };
 }
@@ -397,6 +412,51 @@ describe("finalizeMatch", () => {
     const p1Recompute = repo.recomputeCalls.find((c) => c.playerId === "p1")!;
     expect(p1Recompute.formMatches).toHaveLength(2);
     expect(p1Recompute.formMatches[1]).toEqual(priorMatch);
+  });
+
+  it("syncs the result to the linked tournament fixture and advances the bracket", async () => {
+    const repo = new FakeFinalizeRepo();
+    const graph = happyPathGraph();
+    graph.tournamentMatchId = "tm1";
+    graph.tournamentId = "t1";
+    repo.graphs.set("m1", graph);
+
+    const outcome = await finalizeMatch(repo, "m1", NOW);
+
+    expect(outcome).toEqual({ matchId: "m1", status: "finalized" }); // tournamentSyncError undefined
+    expect(repo.confirmedTournamentMatches).toEqual([{ tournamentMatchId: "tm1", score1: 2, score2: 0 }]);
+    expect(repo.advancedTournaments).toEqual(["t1"]);
+  });
+
+  it("finalizes the real match even when the tournament sync fails (e.g. a KO draw needing pens)", async () => {
+    const repo = new FakeFinalizeRepo();
+    const graph = happyPathGraph();
+    graph.tournamentMatchId = "tm1";
+    graph.tournamentId = "t1";
+    repo.tournamentConfirmError = "PICADO_KO_DRAW: a tied knockout match requires penalties or a manual/walkover decision";
+    repo.graphs.set("m1", graph);
+
+    const outcome = await finalizeMatch(repo, "m1", NOW);
+
+    expect(outcome).toEqual({
+      matchId: "m1",
+      status: "finalized",
+      tournamentSyncError: "PICADO_KO_DRAW: a tied knockout match requires penalties or a manual/walkover decision",
+    });
+    // The real match itself still finalized fully.
+    expect(repo.savedResults.has("m1")).toBe(true);
+    expect(repo.finalizedMatchIds).toEqual([{ matchId: "m1", finalizedAt: NOW }]);
+    expect(repo.advancedTournaments).toEqual([]); // never reached
+  });
+
+  it("does not touch the tournament repo methods for a match with no linked tournament fixture", async () => {
+    const repo = new FakeFinalizeRepo();
+    repo.graphs.set("m1", happyPathGraph());
+
+    await finalizeMatch(repo, "m1", NOW);
+
+    expect(repo.confirmedTournamentMatches).toEqual([]);
+    expect(repo.advancedTournaments).toEqual([]);
   });
 });
 

@@ -5,10 +5,13 @@
 // (service_role) client.
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Rng } from "@/lib/brackets";
 import type { PlayerMatchStats, Side } from "@/lib/reconcile";
 import type { AttributeKey, MatchFormInput } from "@/lib/rating";
 import { recomputePlayer } from "@/lib/server/recompute";
 import { createSupabaseRatingRepo } from "@/lib/server/rating-repo";
+import { createSupabaseTournamentRepo } from "@/lib/server/tournament-repo";
+import { afterTournamentMatchCompleted } from "@/lib/server/tournaments";
 import { type GroupSettings, parseGroupSettings } from "@/lib/settings/group";
 import type { Database, Json } from "@/lib/supabase/database.types";
 
@@ -72,6 +75,10 @@ export interface MatchGraph {
   statReports: MatchStatReport[];
   ratings: MatchRatingRow[];
   disputeResolution: DisputeResolution | null;
+  /** Non-null when this real match is playing out a tournament fixture (matches.tournament_match_id). */
+  tournamentMatchId: string | null;
+  /** The fixture's tournament (tournament_matches.tournament_id), resolved alongside tournamentMatchId. */
+  tournamentId: string | null;
 }
 
 export interface OpenskillSnapshot {
@@ -116,6 +123,18 @@ export interface FinalizeRepo {
   /** Recomputes one team player's card (attributes + OVR + tier) folding in match form; delegates
    * to the existing recompute pipeline (lib/server/recompute.ts) reason "match". */
   recomputeCard(playerId: string, now: Date, formMatches: MatchFormInput[]): Promise<void>;
+  /** Mirrors engine.ts's resolveWinner via the confirm_match_result RPC (service_role): records
+   * the just-finalized real match's score against its tournament fixture and propagates
+   * advancement. Pens are always null today (Rule A never determines a penalty shootout for a
+   * real match) -- a tied knockout fixture surfaces as PICADO_KO_DRAW, which the caller (see
+   * finalizeMatch) catches and reports rather than failing the real match's own finalization. */
+  confirmTournamentMatchResult(
+    tournamentMatchId: string,
+    result: { score1: number; score2: number; pens1: number | null; pens2: number | null },
+  ): Promise<void>;
+  /** Runs lib/server/tournaments.ts's afterTournamentMatchCompleted (groups_ko seeding / next
+   * swiss round) for the tournament the just-confirmed fixture belongs to. */
+  advanceTournament(tournamentId: string, rng: Rng): Promise<void>;
 }
 
 const SUB_ATTRIBUTE_KEYS = new Set<string>([
@@ -179,11 +198,22 @@ export function createSupabaseFinalizeRepo(admin: SupabaseClient<Database>): Fin
     async loadMatchGraph(matchId) {
       const { data: match, error: matchError } = await admin
         .from("matches")
-        .select("id, group_id, status, played_at, scheduled_at, rating_deadline")
+        .select("id, group_id, status, played_at, scheduled_at, rating_deadline, tournament_match_id")
         .eq("id", matchId)
         .maybeSingle();
       if (matchError) throw matchError;
       if (!match) return null;
+
+      let tournamentId: string | null = null;
+      if (match.tournament_match_id) {
+        const { data: tm, error: tmError } = await admin
+          .from("tournament_matches")
+          .select("tournament_id")
+          .eq("id", match.tournament_match_id)
+          .maybeSingle();
+        if (tmError) throw tmError;
+        tournamentId = tm?.tournament_id ?? null;
+      }
 
       const [teamsRes, participantsRes, scoreRes, statRes, ratingsRes, auditRes] = await Promise.all([
         admin.from("match_teams").select("id, side").eq("match_id", matchId),
@@ -256,6 +286,8 @@ export function createSupabaseFinalizeRepo(admin: SupabaseClient<Database>): Fin
         statReports,
         ratings,
         disputeResolution,
+        tournamentMatchId: match.tournament_match_id,
+        tournamentId,
       };
     },
 
@@ -393,6 +425,22 @@ export function createSupabaseFinalizeRepo(admin: SupabaseClient<Database>): Fin
 
     async recomputeCard(playerId, now, formMatches) {
       await recomputePlayer(ratingRepo, playerId, now, formMatches, "match");
+    },
+
+    async confirmTournamentMatchResult(tournamentMatchId, result) {
+      const { error } = await admin.rpc("confirm_match_result", {
+        p_tournament_match_id: tournamentMatchId,
+        p_score1: result.score1,
+        p_score2: result.score2,
+        p_pens1: result.pens1 ?? undefined,
+        p_pens2: result.pens2 ?? undefined,
+      });
+      if (error) throw error;
+    },
+
+    async advanceTournament(tournamentId, rng) {
+      const tournamentRepo = createSupabaseTournamentRepo(admin);
+      await afterTournamentMatchCompleted(tournamentRepo, tournamentId, rng);
     },
   };
 }

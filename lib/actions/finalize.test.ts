@@ -99,6 +99,21 @@ describe("finalizeMatchNow", () => {
     expect(mockFinalizeMatch).not.toHaveBeenCalled();
   });
 
+  it("maps a raw tournament sync error before returning it", async () => {
+    mockTables.matches = { group_id: GROUP_ID, status: "pending_finalize" };
+    mockTables.group_members = { role: "admin" };
+    mockFinalizeMatch.mockResolvedValue({
+      matchId: MATCH_ID,
+      status: "finalized",
+      tournamentSyncError: "PICADO_KO_DRAW: a knockout match cannot end in a draw",
+    });
+    const result = await finalizeMatchNow({ matchId: MATCH_ID });
+    expect(result).toEqual({
+      ok: true,
+      data: { outcome: { matchId: MATCH_ID, status: "finalized", tournamentSyncError: es.common.error } },
+    });
+  });
+
   it("never leaks a finalizer exception", async () => {
     mockTables.matches = { group_id: GROUP_ID, status: "pending_finalize" };
     mockTables.group_members = { role: "admin" };

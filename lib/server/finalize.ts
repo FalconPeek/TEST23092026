@@ -2,6 +2,7 @@
 // (lib/rating/openskill) and card recompute (lib/server/recompute, via FinalizeRepo.recomputeCard)
 // for one match, driven entirely through the injected FinalizeRepo -- no I/O happens here
 // directly, which is what makes this file testable with an in-memory fake (finalize.test.ts).
+import { seededRng } from "@/lib/brackets";
 import {
   buildMvpCandidates,
   computeCleanSheets,
@@ -31,7 +32,15 @@ import type { DisputeStatOverride, FinalizeRepo, MatchGraph, MatchRosterEntry, O
 const FORM_HISTORY_HALF_LIFE_MULTIPLIER = 6;
 
 export type FinalizeOutcome =
-  | { matchId: string; status: "finalized" }
+  | {
+      matchId: string;
+      status: "finalized";
+      /** Set when this match is linked to a tournament fixture and syncing the result to it (or
+       * progressing the bracket) failed -- e.g. PICADO_KO_DRAW for a tied knockout fixture. The
+       * real match's own finalization still succeeded; the organizer resolves this manually via
+       * confirmTournamentResult (lib/actions/tournaments.ts). */
+      tournamentSyncError?: string;
+    }
   | { matchId: string; status: "disputed"; reasons: DisputeReason[] }
   | {
       matchId: string;
@@ -211,7 +220,34 @@ export async function finalizeMatch(repo: FinalizeRepo, matchId: string, now: Da
 
   await recomputeCards(repo, matchId, roster, byTarget, playedAt, settings, now);
 
-  return { matchId, status: "finalized" };
+  const tournamentSyncError = await syncTournamentFixture(repo, graph, score, now);
+
+  return { matchId, status: "finalized", tournamentSyncError };
+}
+
+/** Best-effort: a tournament sync/advancement failure (most commonly PICADO_KO_DRAW on a tied
+ * knockout fixture, since Rule A never produces pens for a real match) must not undo or fail the
+ * real match's own finalization, which already succeeded above. `now.getTime()` seeds the rng
+ * deterministically per call (finalizeMatch never reads the system clock itself). */
+async function syncTournamentFixture(
+  repo: FinalizeRepo,
+  graph: MatchGraph,
+  score: { team1Goals: number; team2Goals: number },
+  now: Date,
+): Promise<string | undefined> {
+  if (!graph.tournamentMatchId || !graph.tournamentId) return undefined;
+  try {
+    await repo.confirmTournamentMatchResult(graph.tournamentMatchId, {
+      score1: score.team1Goals,
+      score2: score.team2Goals,
+      pens1: null,
+      pens2: null,
+    });
+    await repo.advanceTournament(graph.tournamentId, seededRng(now.getTime()));
+    return undefined;
+  } catch (err) {
+    return err instanceof Error ? err.message : String(err);
+  }
 }
 
 async function updateOpenskill(
