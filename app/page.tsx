@@ -1,12 +1,17 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowRight, BarChart3, CreditCard, Star, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { es } from "@/messages/es";
+import { getUserId } from "@/lib/supabase/server";
 
 const FEATURE_ICONS = [CreditCard, Trophy, BarChart3, Star];
 
-export default function Home() {
+export default async function Home() {
+  const userId = await getUserId();
+  if (userId) redirect("/g");
+
   return (
     <main className="flex flex-1 flex-col items-center px-4 py-12 sm:px-6">
       <section className="flex w-full max-w-md flex-col items-center gap-6 text-center">
