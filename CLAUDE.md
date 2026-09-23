@@ -111,7 +111,7 @@ Principles:
 
 **Aggregation** per (player, sub-attribute):
 1. Inputs: scouting votes (quick mode: face-stat vote expands to all its sub-attributes; detailed: per sub-attribute), each 1–10 → `s = 30 + 6.5·x`.
-2. Rater bias: `s' = s − b_r` where `b_r` = rater's mean residual vs consensus, only when rater has ≥ `bias_min_votes` (10) votes.
+2. Rater bias: `s' = s − b_r` where `b_r` = rater's mean residual vs the **leave-one-out mean of the other raters** on the same (target, attribute) (only pairs with ≥ 2 other raters), applied only when the rater has ≥ `bias_min_votes` (10) **raw ballots** (a quick face-stat vote counts once, not per expanded sub-attribute). Pipeline: `lib/server/recompute.ts` (`drainRecomputeQueue`, `recomputeNow`), fed by `recompute_queue` triggers on vote tables.
 3. Outliers: if n ≥ 5, drop `|s' − median| > 2.5 · 1.4826 · MAD` (skip if MAD = 0).
 4. Weight: `w = 0.5^(age_days / 90) · reliability_r · role_w` with reliability = clamp(2/(1+(RMSE_r/σ_group)²), 0.5, 1.5) (neutral 1 below `bias_min_votes`), role_w = 1 (player) or `spectator_weight` (0.75); collusion-flagged pairs ×0.5; cap any single rater at 20% of total weight (iterative redistribution).
 5. `R = Σw·s'/Σw`, `n_eff = (Σw)²/Σw²`; shrink: `base = (n_eff·R + m·C)/(n_eff + m)`, m = 3, C = group mean for that attribute (default 60).

@@ -11,8 +11,8 @@
 
 ## Background subagents launched (a restart may cut them off)
 1. db-architect **M3**: DONE + committed (6003bdb; 242 pgTAP). request_finalize now closes both windows; finalizer must only process pending_finalize matches with rating_deadline <= now (in CLAUDE.md).
-2. rating-engine **recompute pipeline**: `lib/server/{rating-repo,recompute,recompute-now}.ts` + tests, `recompute.db.test.ts` gated by RUN_DB_TESTS, npm script `test:dbint`.
-Both were killed by a usage-limit error; relaunched after the reset as "resume" runs. The first M3 run left 9 uncommitted migrations `20260923064046..064115_*` (4 reports files with content, 5 empty) — the relaunched agent owns/fixes them. If these relaunches also die: same recovery steps below.
+2. rating-engine **recompute pipeline**: DONE + committed (2e06366), live-smoke verified against local stack (card values = expected shrinkage). No DB integration test file yet (`test:dbint` script exists; write one when scouting UI lands). Local DB has smoke data (group "Smoke", users *@x.dev) — `npm run db:reset` wipes it.
+Both were first killed by a usage-limit error; relaunched after the reset as "resume" runs. The first M3 run left 9 uncommitted migrations `20260923064046..064115_*` (4 reports files with content, 5 empty) — the relaunched agent owns/fixes them. If these relaunches also die: same recovery steps below.
 
 ## On resume
 1. Delete `.orchestra/PAUSE` (if present). `docker info`; `npx supabase status` (start if needed).

@@ -19,4 +19,4 @@ FATHER side:
 - DONE: lib/brackets (71 tests).
 - DONE: M2 schema (matches core, scouting, derived tables; 172 pgTAP) — 248aec6.
 - DONE: M3 schema (reports, match ratings, match results/stats/audit, finalize lifecycle, pg_cron; 18 pgTAP files / 242 assertions) — 6003bdb.
-- RUNNING: rating-engine → lib/server recompute pipeline.
+- DONE: service_role read grants (aac0372); lib/server recompute pipeline, live-smoke verified (2e06366).
