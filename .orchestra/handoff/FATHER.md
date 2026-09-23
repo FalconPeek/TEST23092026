@@ -24,3 +24,4 @@
 - Bash heredocs can drop backslashes → use Write for code with backslashes. The Write tool turns ` `-style escapes in markdown into literal chars — spell them as U+00A0.
 - `python` = hanging Windows Store stub → use `node -e`.
 - zod 4: nested object defaults need `.prefault({})` (not `.default({})`).
+- `--seen` file is NOT auto-appended: after handling a verified/rejected task, `echo T-XXX >> .orchestra/.father-seen` before re-waiting.
