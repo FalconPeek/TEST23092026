@@ -1,3 +1,5 @@
+import { formatDate } from "@/lib/format";
+
 export const es = {
   app: {
     name: "Picado",
@@ -368,6 +370,32 @@ export const es = {
   },
   scouting: {
     saved: "¡Voto guardado!",
+    title: (name: string) => `Votá a ${name}`,
+    quick: "Rápido",
+    detailed: "Detallado",
+    quickHelp: "Puntuá cada área del 1 al 10.",
+    detailedHelp: "Puntuá cada atributo del 1 al 10. Podés dejar en blanco los que no conozcas.",
+    playstylesTitle: "Estilos de juego (hasta 5)",
+    starsTitle: "Habilidades",
+    save: "Guardar voto",
+    anonymous: "Tu voto es anónimo.",
+    unset: "Sin votar",
+    scale: {
+      1: "Flojo",
+      4: "Normal",
+      7: "Bueno",
+      10: "Crack",
+    },
+    reasons: {
+      not_found: "No encontramos a este jugador.",
+      target_left: "Este jugador ya no está en el grupo.",
+      not_member: "Necesitás ser miembro activo de este grupo para votar.",
+      self: "No podés votarte a vos mismo.",
+      spectator: "Los espectadores no pueden votar.",
+      no_shared_match: "Vas a poder votarlo cuando jueguen un partido juntos.",
+      cooldown: (date: Date | string) => `Podés volver a votarlo el ${formatDate(date)}`,
+      ok: "",
+    },
   },
   matches: {
     created: "Partido creado",
