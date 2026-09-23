@@ -34,5 +34,7 @@ FATHER side:
 - DONE: M4 tournament schema (6 migrations, pgTAP 020-022, 313 assertions total) — bd6bbdf. No standings table (computed on read via lib/brackets standings()).
 - DONE: match finalizer (lib/server/finalize*, lib/actions/finalize.ts finalizeMatchNow, /api/cron/finalize Bearer) — dc8165c. Note: test:dbint leaves 1 group + 5 users per run (no delete path); cleared by db:reset or manual SQL.
 - DONE: tournament server layer (lib/server/tournament*, lib/actions/tournaments.ts, finalizer auto-advance) — e840b18. Realtime publication (tournament_matches, tournaments, matches) — 0bfb2b6.
-- NEXT (FATHER): M5 — leaderboards/Impacto percentile, badges engine + awarding in finalizer, push notifications (web-push + Serwist), share-card next/og, dashboard data.
+- DONE: M5 schema (badges, notifications+prefs, push_subscriptions, leaderboard/Impacto, dashboard RPCs, realtime; 402 pgTAP) — 7a21dc9.
+- IN PROGRESS (subagent): lib/badges engine + awarding, lib/server/notifications + push (web-push), lib/actions/engagement.ts, notify hooks in finalize/matches/tournaments.
+- NEXT (FATHER): PWA (Serwist SW + manifest + push handler), share-card image (next/og /api/og/card), then M5 UI Worker tasks (rankings, /yo dashboard, notifications center, badges, prefs).
 
