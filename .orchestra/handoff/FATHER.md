@@ -5,12 +5,12 @@
 
 ## State (committed through 248aec6)
 - Local Supabase stack (Docker) for dev (API :54321, DB :54322, Studio :54323, Mailpit :54324); `.env.local` written (local keys, CRON_SECRET, VAPID, E2E_USER_PASSWORD). `auto_expose_new_tables = false`.
-- Worker tasks: T-001..T-004 **verified + committed**. T-005 (group/invite actions + error map) **in_progress** — uncommitted Worker files: `messages/es.ts`, `lib/actions/{errors,groups}{,.test}.ts`. T-006..T-009 todo (M1 UI chain).
+- Worker tasks: T-001..T-004 **verified + committed**. T-005 (group/invite actions + error map) **done, awaiting Verifier** — uncommitted Worker files: `messages/es.ts`, `lib/actions/{errors,groups}{,.test}.ts` (commit after verify). T-006..T-009 todo (M1 UI chain).
 - FATHER side committed: `lib/settings` (zod), M1 schema, M2 schema (matches core, scouting votes, derived rating tables, every member has a player row; 14 pgTAP files / 172 assertions), `lib/rating` + `lib/reconcile` (reliability = 2/(1+(RMSE/σ)²), neutral below bias_min_votes), `lib/brackets` (71 tests), vitest global RTL cleanup, `/dev/*` public in development.
 - `.orchestra/.father-seen` = T-001..T-004. NOT auto-appended: `echo T-XXX >> .orchestra/.father-seen` after handling each result.
 
 ## Background subagents launched (a restart may cut them off)
-1. db-architect **M3**: score_reports, stat_reports, match_ratings, match_results, match_stats, match_audit, `private/public.close_expired_windows` (public one service_role only), pg_cron job every 10 min, `request_finalize`, `resolve_dispute`, `matches.finalized_at`; pgTAP 014+.
+1. db-architect **M3**: DONE + committed (6003bdb; 242 pgTAP). request_finalize now closes both windows; finalizer must only process pending_finalize matches with rating_deadline <= now (in CLAUDE.md).
 2. rating-engine **recompute pipeline**: `lib/server/{rating-repo,recompute,recompute-now}.ts` + tests, `recompute.db.test.ts` gated by RUN_DB_TESTS, npm script `test:dbint`.
 Both were killed by a usage-limit error; relaunched after the reset as "resume" runs. The first M3 run left 9 uncommitted migrations `20260923064046..064115_*` (4 reports files with content, 5 empty) — the relaunched agent owns/fixes them. If these relaunches also die: same recovery steps below.
 
