@@ -12,8 +12,8 @@ Current milestone: **M1 UI → M2/M3 UI** (M0 done; dev on local Supabase stack)
 | T-006 | app shell, my groups, group home | M1 | verified | deps T-002, T-005 |
 | T-007 | invite page /invitacion/[code] | M1 | verified | deps T-006 |
 | T-008 | admin page: members, invites, guests | M1 | verified | deps T-007 |
-| T-009 | group settings form + player profile editor | M1 | todo | deps T-008 |
-| T-010 | scouting + match actions, playstyle codes, error codes | M2/M3 | todo | deps T-009 |
+| T-009 | group settings form + player profile editor | M1 | verified | deps T-008 |
+| T-010 | scouting + match actions, playstyle codes, error codes | M2/M3 | in_progress | deps T-009 |
 | T-011 | player profile: card, radar, attributes, stats | M2 | todo | deps T-010 |
 | T-012 | scouting vote page | M2 | todo | deps T-011 |
 | T-013 | matches list/create/lineup + auto-balance | M3 | todo | deps T-012 |
@@ -30,3 +30,7 @@ FATHER side:
 - DONE: match finalizer (lib/server/finalize*, lib/actions/finalize.ts finalizeMatchNow, /api/cron/finalize Bearer) — dc8165c. Note: test:dbint leaves 1 group + 5 users per run (no delete path); cleared by db:reset or manual SQL.
 - IN PROGRESS (subagent): tournament server layer lib/server/tournament*.ts + lib/actions/tournaments.ts + finalizer→confirm_match_result hook.
 - NEXT: M4 UI Worker tasks (T-016+), strings for M4 error codes.
+
+Backlog (Verifier notes → future polish task):
+- T-009: settings number input cleared → 0 (should show error); profile form can't clear height/foot; "Avanzado" labels are humanized English keys → add es.groupSettings.advanced.*.
+- T-006: transfer-ownership list includes spectators (allowed by SQL; UX decision).
