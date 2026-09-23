@@ -199,6 +199,15 @@ export const es = {
     ownershipTransferred: "Se transfirió la titularidad del grupo",
     playerUpdated: "Jugador actualizado",
   },
+  invite: {
+    title: "Te invitaron a un grupo",
+    joinAs: (role: "owner" | "admin" | "member" | "spectator") =>
+      `Vas a entrar como ${es.roles[role]}`,
+    join: "Unirme",
+    signInToJoin: "Entrá para unirte",
+    invalid: "Esta invitación no es válida o ya venció.",
+    goHome: "Ir a mis grupos",
+  },
 } as const;
 
 export type Messages = typeof es;
