@@ -15,15 +15,15 @@ Current milestone: **M1 UI → M2/M3 UI** (M0 done; dev on local Supabase stack)
 | T-009 | group settings form + player profile editor | M1 | verified | deps T-008 |
 | T-010 | scouting + match actions, playstyle codes, error codes | M2/M3 | verified | deps T-009 |
 | T-011 | player profile: card, radar, attributes, stats | M2 | verified | deps T-010 |
-| T-012 | scouting vote page | M2 | todo | deps T-011 |
-| T-013 | matches list/create/lineup + auto-balance | M3 | todo | deps T-012 |
+| T-012 | scouting vote page | M2 | verified | deps T-011 |
+| T-013 | matches list/create/lineup + auto-balance | M3 | in_progress | deps T-012 |
 | T-014 | match detail: report score/stats, rate players | M3 | todo | deps T-013 |
 | T-015 | disputes, finalize button, final result | M3 | todo | deps T-014; lib/actions/finalize.ts ready |
 | T-016 | tournaments: M4 error strings, list, create form | M4 | todo | deps T-015 |
 | T-017 | tournament hub: status, registrations, entries, generate | M4 | todo | deps T-016 |
 | T-018 | bracket view + match result actions + realtime | M4 | todo | deps T-017 |
 | T-019 | standings tables + fixtures | M4 | todo | deps T-018 |
-| T-020 | polish: Verifier notes T-008/T-009/T-011 | M1 | todo | deps T-019 |
+| T-020 | polish: Verifier notes + quick-vote bias fix | M1 | todo | deps T-019 |
 
 FATHER side:
 - DONE: lib/settings, M1 schema (8 migrations, 77 pgTAP), lib/rating + lib/reconcile (151 tests) — commit 0b97cd8.
