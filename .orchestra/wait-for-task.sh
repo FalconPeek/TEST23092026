@@ -7,6 +7,7 @@
 #   --seen FILE: task ids listed in FILE (one per line) are ignored (FATHER uses this to skip already-handled results).
 #   Exit 1 on timeout (default 540s, so it fits inside a 10-minute tool call: just call it again).
 #   Exit 2 if .orchestra/DONE exists.
+#   Exit 3 if .orchestra/PAUSE exists (write your handoff file, then stop — see CLAUDE.md "Team protocol").
 set -u
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -71,6 +72,7 @@ status_wanted() {
 start=$(date +%s)
 while :; do
   if [ -f "$DIR/DONE" ]; then echo "DONE"; exit 2; fi
+  if [ -f "$DIR/PAUSE" ]; then echo "PAUSE"; exit 3; fi
 
   if [ -d "$TASKS" ]; then
     for f in $(ls "$TASKS"/T-*.md 2>/dev/null | sort); do
