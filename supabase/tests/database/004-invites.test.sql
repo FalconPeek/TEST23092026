@@ -1,5 +1,7 @@
 -- create_invite / revoke_invite / get_invite_preview / accept_invite: membership + role rules,
--- expiry, revocation, usage limits, idempotency, and spectators getting no player row.
+-- expiry, revocation, usage limits, idempotency, and every accepted invite (including
+-- spectator-role ones) creating a player row -- spectators need a player identity too (they
+-- appear in match_participants and rate players via match_ratings).
 begin;
 
 select plan(16);
@@ -68,7 +70,8 @@ select ok(
   'accept_invite creates a player row for a member-role invite'
 );
 
--- 5. accepting a spectator invite creates a membership but NO player row
+-- 5. accepting a spectator invite creates a membership AND a player row (spectators need a
+-- player identity too: match_participants + match_ratings.rater_player_id)
 select tests.authenticate_as('test_inv_owner');
 insert into test_scratch (key, value)
   select 'spectator_invite_code', code from public.create_invite((select value::uuid from test_scratch where key = 'group_id'), 'spectator');
@@ -84,12 +87,12 @@ select is(
   'accept_invite grants the spectator role'
 );
 select ok(
-  not exists(
+  exists(
     select 1 from public.players
     where group_id = (select value::uuid from test_scratch where key = 'group_id')
       and user_id = tests.get_supabase_uid('test_inv_spectator')
   ),
-  'accept_invite does not create a player row for a spectator-role invite'
+  'accept_invite also creates a player row for a spectator-role invite'
 );
 
 -- 6. an idempotent re-accept does not error and does not change the existing role

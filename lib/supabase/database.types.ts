@@ -9,6 +9,119 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      attribute_history: {
+        Row: {
+          attrs: Json
+          id: string
+          match_id: string | null
+          ovr: number
+          player_id: string
+          reason: string
+          snapshot_at: string
+        }
+        Insert: {
+          attrs?: Json
+          id?: string
+          match_id?: string | null
+          ovr: number
+          player_id: string
+          reason: string
+          snapshot_at?: string
+        }
+        Update: {
+          attrs?: Json
+          id?: string
+          match_id?: string | null
+          ovr?: number
+          player_id?: string
+          reason?: string
+          snapshot_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attribute_history_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attribute_history_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attribute_ratings: {
+        Row: {
+          attribute: string
+          n_raters: number
+          n_votes: number
+          player_id: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          attribute: string
+          n_raters?: number
+          n_votes?: number
+          player_id: string
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          attribute?: string
+          n_raters?: number
+          n_votes?: number
+          player_id?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attribute_ratings_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collusion_flags: {
+        Row: {
+          flagged_at: string
+          rater_player_id: string
+          target_player_id: string
+        }
+        Insert: {
+          flagged_at?: string
+          rater_player_id: string
+          target_player_id: string
+        }
+        Update: {
+          flagged_at?: string
+          rater_player_id?: string
+          target_player_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collusion_flags_rater_player_id_fkey"
+            columns: ["rater_player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collusion_flags_target_player_id_fkey"
+            columns: ["target_player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_members: {
         Row: {
           group_id: string
@@ -112,6 +225,228 @@ export type Database = {
           },
         ]
       }
+      match_participants: {
+        Row: {
+          match_id: string
+          player_id: string
+          position: string | null
+          role: Database["public"]["Enums"]["participant_role"]
+          team_id: string | null
+        }
+        Insert: {
+          match_id: string
+          player_id: string
+          position?: string | null
+          role?: Database["public"]["Enums"]["participant_role"]
+          team_id?: string | null
+        }
+        Update: {
+          match_id?: string
+          player_id?: string
+          position?: string | null
+          role?: Database["public"]["Enums"]["participant_role"]
+          team_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_participants_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_participants_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_participants_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "match_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      match_teams: {
+        Row: {
+          color: string | null
+          id: string
+          match_id: string
+          name: string
+          side: number
+        }
+        Insert: {
+          color?: string | null
+          id?: string
+          match_id: string
+          name: string
+          side: number
+        }
+        Update: {
+          color?: string | null
+          id?: string
+          match_id?: string
+          name?: string
+          side?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_teams_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matches: {
+        Row: {
+          created_at: string
+          created_by: string
+          group_id: string
+          id: string
+          kind: string
+          played_at: string | null
+          rating_deadline: string | null
+          report_deadline: string | null
+          scheduled_at: string
+          status: Database["public"]["Enums"]["match_status"]
+          team_size: number
+          tournament_match_id: string | null
+          venue: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          group_id: string
+          id?: string
+          kind?: string
+          played_at?: string | null
+          rating_deadline?: string | null
+          report_deadline?: string | null
+          scheduled_at: string
+          status?: Database["public"]["Enums"]["match_status"]
+          team_size: number
+          tournament_match_id?: string | null
+          venue?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          group_id?: string
+          id?: string
+          kind?: string
+          played_at?: string | null
+          rating_deadline?: string | null
+          report_deadline?: string | null
+          scheduled_at?: string
+          status?: Database["public"]["Enums"]["match_status"]
+          team_size?: number
+          tournament_match_id?: string | null
+          venue?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matches_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      openskill_ratings: {
+        Row: {
+          matches_played: number
+          mu: number
+          ordinal: number | null
+          player_id: string
+          sigma: number
+          updated_at: string
+        }
+        Insert: {
+          matches_played?: number
+          mu?: number
+          ordinal?: number | null
+          player_id: string
+          sigma?: number
+          updated_at?: string
+        }
+        Update: {
+          matches_played?: number
+          mu?: number
+          ordinal?: number | null
+          player_id?: string
+          sigma?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "openskill_ratings_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: true
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      player_cards: {
+        Row: {
+          face: Json
+          is_provisional: boolean
+          n_raters: number
+          ovr: number
+          ovr_by_position: Json
+          player_id: string
+          playstyles: Json
+          position: string | null
+          skill_moves: number | null
+          tier: Database["public"]["Enums"]["card_tier"]
+          updated_at: string
+          weak_foot: number | null
+        }
+        Insert: {
+          face?: Json
+          is_provisional?: boolean
+          n_raters?: number
+          ovr: number
+          ovr_by_position?: Json
+          player_id: string
+          playstyles?: Json
+          position?: string | null
+          skill_moves?: number | null
+          tier?: Database["public"]["Enums"]["card_tier"]
+          updated_at?: string
+          weak_foot?: number | null
+        }
+        Update: {
+          face?: Json
+          is_provisional?: boolean
+          n_raters?: number
+          ovr?: number
+          ovr_by_position?: Json
+          player_id?: string
+          playstyles?: Json
+          position?: string | null
+          skill_moves?: number | null
+          tier?: Database["public"]["Enums"]["card_tier"]
+          updated_at?: string
+          weak_foot?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_cards_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: true
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       players: {
         Row: {
           alt_positions: string[]
@@ -171,6 +506,42 @@ export type Database = {
           },
         ]
       }
+      playstyle_votes: {
+        Row: {
+          created_at: string
+          playstyle: string
+          rater_player_id: string
+          target_player_id: string
+        }
+        Insert: {
+          created_at?: string
+          playstyle: string
+          rater_player_id: string
+          target_player_id: string
+        }
+        Update: {
+          created_at?: string
+          playstyle?: string
+          rater_player_id?: string
+          target_player_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playstyle_votes_rater_player_id_fkey"
+            columns: ["rater_player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playstyle_votes_target_player_id_fkey"
+            columns: ["target_player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -192,6 +563,164 @@ export type Database = {
         }
         Relationships: []
       }
+      rater_stats: {
+        Row: {
+          bias: number
+          n_votes: number
+          player_id: string
+          reliability: number
+          rmse: number
+          updated_at: string
+        }
+        Insert: {
+          bias?: number
+          n_votes?: number
+          player_id: string
+          reliability?: number
+          rmse?: number
+          updated_at?: string
+        }
+        Update: {
+          bias?: number
+          n_votes?: number
+          player_id?: string
+          reliability?: number
+          rmse?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rater_stats_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: true
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recompute_queue: {
+        Row: {
+          enqueued_at: string
+          player_id: string
+          reason: string
+        }
+        Insert: {
+          enqueued_at?: string
+          player_id: string
+          reason: string
+        }
+        Update: {
+          enqueued_at?: string
+          player_id?: string
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recompute_queue_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: true
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scouting_votes: {
+        Row: {
+          attribute: string
+          created_at: string
+          group_id: string
+          id: string
+          mode: Database["public"]["Enums"]["vote_mode"]
+          rater_player_id: string
+          superseded_at: string | null
+          target_player_id: string
+          value: number
+        }
+        Insert: {
+          attribute: string
+          created_at?: string
+          group_id: string
+          id?: string
+          mode: Database["public"]["Enums"]["vote_mode"]
+          rater_player_id: string
+          superseded_at?: string | null
+          target_player_id: string
+          value: number
+        }
+        Update: {
+          attribute?: string
+          created_at?: string
+          group_id?: string
+          id?: string
+          mode?: Database["public"]["Enums"]["vote_mode"]
+          rater_player_id?: string
+          superseded_at?: string | null
+          target_player_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scouting_votes_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scouting_votes_rater_player_id_fkey"
+            columns: ["rater_player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scouting_votes_target_player_id_fkey"
+            columns: ["target_player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      star_votes: {
+        Row: {
+          created_at: string
+          kind: Database["public"]["Enums"]["star_kind"]
+          rater_player_id: string
+          target_player_id: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          kind: Database["public"]["Enums"]["star_kind"]
+          rater_player_id: string
+          target_player_id: string
+          value: number
+        }
+        Update: {
+          created_at?: string
+          kind?: Database["public"]["Enums"]["star_kind"]
+          rater_player_id?: string
+          target_player_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "star_votes_rater_player_id_fkey"
+            columns: ["rater_player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "star_votes_target_player_id_fkey"
+            columns: ["target_player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -210,6 +739,7 @@ export type Database = {
         Args: { p_player_id: string; p_user_id: string }
         Returns: undefined
       }
+      cancel_match: { Args: { p_match_id: string }; Returns: undefined }
       claim_guest_player: { Args: { p_player_id: string }; Returns: undefined }
       create_group: { Args: { p_name: string }; Returns: string }
       create_invite: {
@@ -224,6 +754,15 @@ export type Database = {
           id: string
         }[]
       }
+      create_match: {
+        Args: {
+          p_group_id: string
+          p_scheduled_at: string
+          p_team_size: number
+          p_venue?: string
+        }
+        Returns: string
+      }
       get_invite_preview: {
         Args: { p_code: string }
         Returns: {
@@ -234,17 +773,63 @@ export type Database = {
           valid: boolean
         }[]
       }
+      get_my_scouting_ballot: {
+        Args: { p_target_player_id: string }
+        Returns: {
+          attribute: string
+          created_at: string
+          mode: Database["public"]["Enums"]["vote_mode"]
+          value: number
+        }[]
+      }
+      get_scouting_status: {
+        Args: { p_target_player_id: string }
+        Returns: {
+          can_vote: boolean
+          next_vote_at: string
+          reason: string
+        }[]
+      }
       leave_group: { Args: { p_group_id: string }; Returns: undefined }
       remove_member: {
         Args: { p_group_id: string; p_user_id: string }
         Returns: undefined
       }
       revoke_invite: { Args: { p_invite_id: string }; Returns: undefined }
+      set_match_lineup: {
+        Args: {
+          p_match_id: string
+          p_spectators?: string[]
+          p_team1: Json
+          p_team2: Json
+        }
+        Returns: undefined
+      }
       set_member_role: {
         Args: {
           p_group_id: string
           p_role: Database["public"]["Enums"]["group_role"]
           p_user_id: string
+        }
+        Returns: undefined
+      }
+      start_reporting: {
+        Args: { p_match_id: string; p_played_at?: string }
+        Returns: undefined
+      }
+      submit_playstyle_votes: {
+        Args: { p_playstyles: string[]; p_target_player_id: string }
+        Returns: undefined
+      }
+      submit_scouting_votes: {
+        Args: { p_mode: string; p_target_player_id: string; p_votes: Json }
+        Returns: undefined
+      }
+      submit_star_votes: {
+        Args: {
+          p_skill_moves: number
+          p_target_player_id: string
+          p_weak_foot: number
         }
         Returns: undefined
       }
@@ -280,8 +865,19 @@ export type Database = {
       }
     }
     Enums: {
+      card_tier: "bronze" | "silver" | "gold" | "special"
       group_role: "owner" | "admin" | "member" | "spectator"
+      match_status:
+        | "scheduled"
+        | "reporting"
+        | "disputed"
+        | "pending_finalize"
+        | "finalized"
+        | "cancelled"
+      participant_role: "player" | "spectator"
       preferred_foot: "left" | "right" | "both"
+      star_kind: "weak_foot" | "skill_moves"
+      vote_mode: "quick" | "detailed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -409,8 +1005,20 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      card_tier: ["bronze", "silver", "gold", "special"],
       group_role: ["owner", "admin", "member", "spectator"],
+      match_status: [
+        "scheduled",
+        "reporting",
+        "disputed",
+        "pending_finalize",
+        "finalized",
+        "cancelled",
+      ],
+      participant_role: ["player", "spectator"],
       preferred_foot: ["left", "right", "both"],
+      star_kind: ["weak_foot", "skill_moves"],
+      vote_mode: ["quick", "detailed"],
     },
   },
 } as const
