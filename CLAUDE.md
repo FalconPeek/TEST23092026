@@ -113,7 +113,7 @@ Principles:
 1. Inputs: scouting votes (quick mode: face-stat vote expands to all its sub-attributes; detailed: per sub-attribute), each 1–10 → `s = 30 + 6.5·x`.
 2. Rater bias: `s' = s − b_r` where `b_r` = rater's mean residual vs consensus, only when rater has ≥ `bias_min_votes` (10) votes.
 3. Outliers: if n ≥ 5, drop `|s' − median| > 2.5 · 1.4826 · MAD` (skip if MAD = 0).
-4. Weight: `w = 0.5^(age_days / 90) · reliability_r · role_w` with reliability = clamp(1/(1+(RMSE_r/σ_group)²), 0.5, 1.5), role_w = 1 (player) or `spectator_weight` (0.75); collusion-flagged pairs ×0.5; cap any single rater at 20% of total weight (iterative redistribution).
+4. Weight: `w = 0.5^(age_days / 90) · reliability_r · role_w` with reliability = clamp(2/(1+(RMSE_r/σ_group)²), 0.5, 1.5) (neutral 1 below `bias_min_votes`), role_w = 1 (player) or `spectator_weight` (0.75); collusion-flagged pairs ×0.5; cap any single rater at 20% of total weight (iterative redistribution).
 5. `R = Σw·s'/Σw`, `n_eff = (Σw)²/Σw²`; shrink: `base = (n_eff·R + m·C)/(n_eff + m)`, m = 3, C = group mean for that attribute (default 60).
 6. Form from match ratings (participants + spectators, 1–10, window 72 h): per match M = weighted median rating (min 3 raters); `f = clamp(0.5·(M − 6.5), −1, 1)` applied to the position's primary attributes (top-weighted attrs of primary position) and doubled on "standout" tagged attributes; `F = Σ 0.5^(age/30d) · f`, clamp |F| ≤ 3.
 7. `value = clamp(round(base + F), 1, 99)`, then rate-limit vs previous snapshot: ±2 per finalized match, ±4 per rolling 30 days.

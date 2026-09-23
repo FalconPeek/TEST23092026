@@ -1,0 +1,2 @@
+-- Dev fixture seed data comes later (see .orchestra/PLAN.md). Intentionally empty for now so
+-- `supabase db reset` / `supabase test db` stop warning about a missing seed file.

@@ -47,3 +47,6 @@ next-env.d.ts
 /test-results/
 supabase/.temp/
 supabase/.branches/
+
+# orchestra per-session state
+.orchestra/.*-seen
