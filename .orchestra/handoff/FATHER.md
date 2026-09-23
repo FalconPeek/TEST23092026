@@ -12,7 +12,7 @@
 ## Background subagents launched (a restart may cut them off)
 1. db-architect **M3**: score_reports, stat_reports, match_ratings, match_results, match_stats, match_audit, `private/public.close_expired_windows` (public one service_role only), pg_cron job every 10 min, `request_finalize`, `resolve_dispute`, `matches.finalized_at`; pgTAP 014+.
 2. rating-engine **recompute pipeline**: `lib/server/{rating-repo,recompute,recompute-now}.ts` + tests, `recompute.db.test.ts` gated by RUN_DB_TESTS, npm script `test:dbint`.
-When this file was written, neither had produced files yet.
+Both were killed by a usage-limit error; relaunched after the reset as "resume" runs. The first M3 run left 9 uncommitted migrations `20260923064046..064115_*` (4 reports files with content, 5 empty) — the relaunched agent owns/fixes them. If these relaunches also die: same recovery steps below.
 
 ## On resume
 1. Delete `.orchestra/PAUSE` (if present). `docker info`; `npx supabase status` (start if needed).

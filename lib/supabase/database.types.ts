@@ -225,6 +225,41 @@ export type Database = {
           },
         ]
       }
+      match_audit: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          id: string
+          match_id: string
+          payload: Json
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          match_id: string
+          payload?: Json
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          match_id?: string
+          payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_audit_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       match_participants: {
         Row: {
           match_id: string
@@ -271,6 +306,156 @@ export type Database = {
           },
         ]
       }
+      match_ratings: {
+        Row: {
+          created_at: string
+          match_id: string
+          rater_player_id: string
+          rater_role: Database["public"]["Enums"]["participant_role"]
+          rating: number
+          standout_attributes: string[]
+          target_player_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          match_id: string
+          rater_player_id: string
+          rater_role: Database["public"]["Enums"]["participant_role"]
+          rating: number
+          standout_attributes?: string[]
+          target_player_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          match_id?: string
+          rater_player_id?: string
+          rater_role?: Database["public"]["Enums"]["participant_role"]
+          rating?: number
+          standout_attributes?: string[]
+          target_player_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_ratings_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_ratings_rater_player_id_fkey"
+            columns: ["rater_player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_ratings_target_player_id_fkey"
+            columns: ["target_player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      match_results: {
+        Row: {
+          decided_by: string
+          finalized_at: string
+          match_id: string
+          pens1: number | null
+          pens2: number | null
+          team1_goals: number
+          team2_goals: number
+          winner_side: number | null
+        }
+        Insert: {
+          decided_by?: string
+          finalized_at?: string
+          match_id: string
+          pens1?: number | null
+          pens2?: number | null
+          team1_goals: number
+          team2_goals: number
+          winner_side?: number | null
+        }
+        Update: {
+          decided_by?: string
+          finalized_at?: string
+          match_id?: string
+          pens1?: number | null
+          pens2?: number | null
+          team1_goals?: number
+          team2_goals?: number
+          winner_side?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_results_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: true
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      match_stats: {
+        Row: {
+          assists: number
+          clean_sheet: boolean
+          goals: number
+          is_mvp: boolean
+          match_id: string
+          median_rating: number | null
+          n_ratings: number
+          own_goals: number
+          player_id: string
+          saves: number
+        }
+        Insert: {
+          assists?: number
+          clean_sheet?: boolean
+          goals?: number
+          is_mvp?: boolean
+          match_id: string
+          median_rating?: number | null
+          n_ratings?: number
+          own_goals?: number
+          player_id: string
+          saves?: number
+        }
+        Update: {
+          assists?: number
+          clean_sheet?: boolean
+          goals?: number
+          is_mvp?: boolean
+          match_id?: string
+          median_rating?: number | null
+          n_ratings?: number
+          own_goals?: number
+          player_id?: string
+          saves?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_stats_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_stats_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       match_teams: {
         Row: {
           color: string | null
@@ -307,6 +492,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          finalized_at: string | null
           group_id: string
           id: string
           kind: string
@@ -322,6 +508,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          finalized_at?: string | null
           group_id: string
           id?: string
           kind?: string
@@ -337,6 +524,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          finalized_at?: string | null
           group_id?: string
           id?: string
           kind?: string
@@ -624,6 +812,48 @@ export type Database = {
           },
         ]
       }
+      score_reports: {
+        Row: {
+          created_at: string
+          match_id: string
+          reporter_player_id: string
+          team1_goals: number
+          team2_goals: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          match_id: string
+          reporter_player_id: string
+          team1_goals: number
+          team2_goals: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          match_id?: string
+          reporter_player_id?: string
+          team1_goals?: number
+          team2_goals?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "score_reports_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "score_reports_reporter_player_id_fkey"
+            columns: ["reporter_player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scouting_votes: {
         Row: {
           attribute: string
@@ -721,6 +951,64 @@ export type Database = {
           },
         ]
       }
+      stat_reports: {
+        Row: {
+          assists: number
+          created_at: string
+          goals: number
+          match_id: string
+          own_goals: number
+          reporter_player_id: string
+          saves: number
+          subject_player_id: string
+          updated_at: string
+        }
+        Insert: {
+          assists?: number
+          created_at?: string
+          goals?: number
+          match_id: string
+          own_goals?: number
+          reporter_player_id: string
+          saves?: number
+          subject_player_id: string
+          updated_at?: string
+        }
+        Update: {
+          assists?: number
+          created_at?: string
+          goals?: number
+          match_id?: string
+          own_goals?: number
+          reporter_player_id?: string
+          saves?: number
+          subject_player_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stat_reports_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stat_reports_reporter_player_id_fkey"
+            columns: ["reporter_player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stat_reports_subject_player_id_fkey"
+            columns: ["subject_player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -741,6 +1029,7 @@ export type Database = {
       }
       cancel_match: { Args: { p_match_id: string }; Returns: undefined }
       claim_guest_player: { Args: { p_player_id: string }; Returns: undefined }
+      close_expired_windows: { Args: never; Returns: number }
       create_group: { Args: { p_name: string }; Returns: string }
       create_invite: {
         Args: {
@@ -773,6 +1062,14 @@ export type Database = {
           valid: boolean
         }[]
       }
+      get_match_report_summary: {
+        Args: { p_match_id: string }
+        Returns: {
+          all_agree: boolean
+          reporters: number
+          side: number
+        }[]
+      }
       get_my_scouting_ballot: {
         Args: { p_target_player_id: string }
         Returns: {
@@ -793,6 +1090,16 @@ export type Database = {
       leave_group: { Args: { p_group_id: string }; Returns: undefined }
       remove_member: {
         Args: { p_group_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      request_finalize: { Args: { p_match_id: string }; Returns: undefined }
+      resolve_dispute: {
+        Args: {
+          p_match_id: string
+          p_stats?: Json
+          p_team1_goals: number
+          p_team2_goals: number
+        }
         Returns: undefined
       }
       revoke_invite: { Args: { p_invite_id: string }; Returns: undefined }
@@ -817,8 +1124,20 @@ export type Database = {
         Args: { p_match_id: string; p_played_at?: string }
         Returns: undefined
       }
+      submit_match_ratings: {
+        Args: { p_match_id: string; p_ratings: Json }
+        Returns: undefined
+      }
       submit_playstyle_votes: {
         Args: { p_playstyles: string[]; p_target_player_id: string }
+        Returns: undefined
+      }
+      submit_score_report: {
+        Args: {
+          p_match_id: string
+          p_team1_goals: number
+          p_team2_goals: number
+        }
         Returns: undefined
       }
       submit_scouting_votes: {
@@ -831,6 +1150,10 @@ export type Database = {
           p_target_player_id: string
           p_weak_foot: number
         }
+        Returns: undefined
+      }
+      submit_stat_reports: {
+        Args: { p_match_id: string; p_reports: Json }
         Returns: undefined
       }
       transfer_ownership: {
