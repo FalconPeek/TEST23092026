@@ -33,4 +33,4 @@ FATHER side:
 
 Backlog (Verifier notes → future polish task):
 - T-009: settings number input cleared → 0 (should show error); profile form can't clear height/foot; "Avanzado" labels are humanized English keys → add es.groupSettings.advanced.*.
-- T-006: transfer-ownership list includes spectators (allowed by SQL; UX decision).
+- T-008: transfer-ownership list includes spectators (allowed by SQL; UX decision).
