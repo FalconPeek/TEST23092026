@@ -9,8 +9,8 @@ Current milestone: **M1 UI → M2/M3 UI** (M0 done; dev on local Supabase stack)
 | T-003 | login page + auth actions | M1 | verified | deps T-001 |
 | T-004 | FUT player card + /dev/cards | M2 | verified | deps T-002 |
 | T-005 | group/invite/member actions + error map | M1 | verified | deps T-003 |
-| T-006 | app shell, my groups, group home | M1 | in_progress | deps T-002, T-005 |
-| T-007 | invite page /invitacion/[code] | M1 | todo | deps T-006 |
+| T-006 | app shell, my groups, group home | M1 | verified | deps T-002, T-005 |
+| T-007 | invite page /invitacion/[code] | M1 | in_progress | deps T-006 |
 | T-008 | admin page: members, invites, guests | M1 | todo | deps T-007 |
 | T-009 | group settings form + player profile editor | M1 | todo | deps T-008 |
 | T-010 | scouting + match actions, playstyle codes, error codes | M2/M3 | todo | deps T-009 |
