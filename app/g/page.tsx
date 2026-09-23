@@ -27,12 +27,11 @@ export default async function MyGroupsPage() {
   const memberCounts = new Map<string, number>();
   const groupIds = groups.map((g) => g.id);
   if (groupIds.length > 0) {
-    const { data: playerRows } = await supabase
-      .from("players")
+    const { data: memberRows } = await supabase
+      .from("group_members")
       .select("group_id")
-      .in("group_id", groupIds)
-      .is("left_at", null);
-    for (const row of playerRows ?? []) {
+      .in("group_id", groupIds);
+    for (const row of memberRows ?? []) {
       memberCounts.set(row.group_id, (memberCounts.get(row.group_id) ?? 0) + 1);
     }
   }

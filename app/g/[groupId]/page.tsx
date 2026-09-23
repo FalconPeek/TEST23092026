@@ -13,19 +13,21 @@ export default async function GroupHomePage({ params }: PageProps<"/g/[groupId]"
   const { groupId } = await params;
   const supabase = await createClient();
 
-  const { data: players } = await supabase
-    .from("players")
-    .select("id, display_name, avatar_url")
-    .eq("group_id", groupId)
-    .is("left_at", null)
-    .order("display_name");
+  const [{ data: players }, { count: memberCount }] = await Promise.all([
+    supabase
+      .from("players")
+      .select("id, display_name, avatar_url")
+      .eq("group_id", groupId)
+      .is("left_at", null)
+      .order("display_name"),
+    supabase.from("group_members").select("*", { count: "exact", head: true }).eq("group_id", groupId),
+  ]);
 
-  const memberCount = players?.length ?? 0;
   const preview = (players ?? []).slice(0, 8);
 
   return (
     <div className="flex flex-col gap-6 px-4 py-6">
-      <p className="text-sm text-muted-foreground">{es.groups.members(memberCount)}</p>
+      <p className="text-sm text-muted-foreground">{es.groups.members(memberCount ?? 0)}</p>
 
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-medium text-muted-foreground">{es.groups.pendingActions}</h2>
@@ -48,7 +50,7 @@ export default async function GroupHomePage({ params }: PageProps<"/g/[groupId]"
       {preview.length > 0 && (
         <Link href={`/g/${groupId}/ajustes`} className="flex flex-col gap-2">
           <h2 className="text-sm font-medium text-muted-foreground">
-            {es.groups.members(memberCount)}
+            {es.groups.members(memberCount ?? 0)}
           </h2>
           <AvatarGroup>
             {preview.map((player) => (
