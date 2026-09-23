@@ -58,19 +58,28 @@ export default async function GroupHomePage({ params }: PageProps<"/g/[groupId]"
       </section>
 
       {preview.length > 0 && (
-        <Link href={`/g/${groupId}/ajustes`} className="flex flex-col gap-2">
-          <h2 className="text-sm font-medium text-muted-foreground">
+        <div className="flex flex-col gap-2">
+          <Link
+            href={`/g/${groupId}/ajustes`}
+            className="text-sm font-medium text-muted-foreground hover:underline"
+          >
             {es.groups.members(memberCount ?? 0)}
-          </h2>
+          </Link>
           <AvatarGroup>
             {preview.map((player) => (
-              <Avatar key={player.id}>
-                {player.avatar_url && <AvatarImage src={player.avatar_url} alt={player.display_name} />}
-                <AvatarFallback>{initials(player.display_name)}</AvatarFallback>
-              </Avatar>
+              <Link
+                key={player.id}
+                href={`/g/${groupId}/jugadores/${player.id}`}
+                className="relative rounded-full ring-2 ring-background"
+              >
+                <Avatar>
+                  {player.avatar_url && <AvatarImage src={player.avatar_url} alt={player.display_name} />}
+                  <AvatarFallback>{initials(player.display_name)}</AvatarFallback>
+                </Avatar>
+              </Link>
             ))}
           </AvatarGroup>
-        </Link>
+        </div>
       )}
     </div>
   );
