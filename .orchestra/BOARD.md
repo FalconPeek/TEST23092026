@@ -22,7 +22,7 @@ Current milestone: **M1 UI → M2/M3 UI** (M0 done; dev on local Supabase stack)
 | T-021 | fix T-014: ≥44px tap targets (stats form, standout search) | M3 | verified (via T-022) | deps T-013; fixes rejected T-014 |
 | T-022 | fix T-021: standout chips + saves toggle ≥44px | M3 | verified | deps T-013; fixes rejected T-021 |
 | T-016 | tournaments: M4 error strings, list, create form | M4 | verified | deps T-015 |
-| T-017 | tournament hub: status, registrations, entries, generate | M4 | in_progress | deps T-016 |
+| T-017 | tournament hub: status, registrations, entries, generate | M4 | verified | deps T-016 |
 | T-018 | bracket view + match result actions + realtime | M4 | todo | deps T-017 |
 | T-019 | standings tables + fixtures | M4 | todo | deps T-018 |
 | T-027 | finalized match: unattributed goals + admin "Asignar goles" | M3 | todo | deps T-019 |
