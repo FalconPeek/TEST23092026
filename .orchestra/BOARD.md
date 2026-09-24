@@ -26,6 +26,10 @@ Current milestone: **M1 UI → M2/M3 UI** (M0 done; dev on local Supabase stack)
 | T-018 | bracket view + match result actions + realtime | M4 | todo | deps T-017 |
 | T-019 | standings tables + fixtures | M4 | todo | deps T-018 |
 | T-020 | polish: Verifier notes + quick-vote bias fix | M1 | todo | deps T-019 |
+| T-023 | M5 strings, badges on profile, share button, templates from es.ts | M5 | todo | deps T-020; needs /api/og/card (FATHER) |
+| T-024 | rankings page | M5 | todo | deps T-023 |
+| T-025 | /yo dashboard | M5 | todo | deps T-024 |
+| T-026 | notifications center, bell, prefs + push toggle | M5 | todo | deps T-025; needs lib/push/client.ts (FATHER) |
 
 FATHER side:
 - DONE: lib/settings, M1 schema (8 migrations, 77 pgTAP), lib/rating + lib/reconcile (151 tests) — commit 0b97cd8.
@@ -37,6 +41,7 @@ FATHER side:
 - DONE: match finalizer (lib/server/finalize*, lib/actions/finalize.ts finalizeMatchNow, /api/cron/finalize Bearer) — dc8165c. Note: test:dbint leaves 1 group + 5 users per run (no delete path); cleared by db:reset or manual SQL.
 - DONE: tournament server layer (lib/server/tournament*, lib/actions/tournaments.ts, finalizer auto-advance) — e840b18. Realtime publication (tournament_matches, tournaments, matches) — 0bfb2b6.
 - DONE: M5 schema (badges, notifications+prefs, push_subscriptions, leaderboard/Impacto, dashboard RPCs, realtime; 402 pgTAP) — 7a21dc9.
-- IN PROGRESS (subagent): lib/badges engine + awarding, lib/server/notifications + push (web-push), lib/actions/engagement.ts, notify hooks in finalize/matches/tournaments.
-- NEXT (FATHER): PWA (Serwist SW + manifest + push handler), share-card image (next/og /api/og/card), then M5 UI Worker tasks (rankings, /yo dashboard, notifications center, badges, prefs).
+- DONE: badge engine + awarding, notifications + web push, engagement actions, notify hooks — 234357a (assist_king = 3+ assists in one match, repeatable).
+- IN PROGRESS (subagent): PWA (Serwist SW, manifest, icons, push handler), lib/push/client.ts, /api/og/card share image.
+- NEXT (FATHER): M6 hardening — security review (RLS/RPC, advisors), e2e happy paths (Playwright), seed data, then deploy decision with user.
 
