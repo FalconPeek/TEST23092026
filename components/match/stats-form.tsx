@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { PlayerStatRow } from "@/components/match/stat-row";
 import { es } from "@/messages/es";
 import { submitStatReports } from "@/lib/actions/matches";
 import { buildStatReportsPayload, goalsCheck, type ScoreReport, type StatRow } from "@/lib/match/report";
@@ -23,48 +23,6 @@ export type StatPrefill = {
   ownGoals: number;
   saves: number;
 };
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).slice(0, 2);
-  return parts.map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
-}
-
-function MiniStepper({
-  value,
-  onChange,
-  max,
-  label,
-}: {
-  value: number;
-  onChange: (value: number) => void;
-  max: number;
-  label: string;
-}) {
-  return (
-    <div className="flex flex-col items-center gap-1 rounded-md bg-card p-1.5">
-      <span className="text-[10px] text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-1.5">
-        <button
-          type="button"
-          onClick={() => onChange(Math.max(0, value - 1))}
-          disabled={value <= 0}
-          className="flex size-11 items-center justify-center rounded-md border border-border text-base disabled:opacity-40"
-        >
-          −
-        </button>
-        <span className="w-6 text-center text-base font-semibold tabular-nums">{value}</span>
-        <button
-          type="button"
-          onClick={() => onChange(Math.min(max, value + 1))}
-          disabled={value >= max}
-          className="flex size-11 items-center justify-center rounded-md border border-border text-base disabled:opacity-40"
-        >
-          +
-        </button>
-      </div>
-    </div>
-  );
-}
 
 export function StatsForm({
   groupId,
@@ -143,48 +101,15 @@ export function StatsForm({
               {sidePlayers.map((player) => {
                 const row = rowByPlayer.get(player.id);
                 if (!row) return null;
-                const rowShowsSaves = showSaves || player.position === "POR";
                 return (
-                  <div
+                  <PlayerStatRow
                     key={player.id}
-                    className="flex flex-col gap-2 rounded-lg bg-background p-2 ring-1 ring-foreground/10"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Avatar size="sm">
-                        {player.avatarUrl && <AvatarImage src={player.avatarUrl} alt="" />}
-                        <AvatarFallback>{initials(player.displayName)}</AvatarFallback>
-                      </Avatar>
-                      <span className="min-w-0 flex-1 truncate text-sm">{player.displayName}</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <MiniStepper
-                        label={es.match.goals}
-                        value={row.goals}
-                        max={30}
-                        onChange={(v) => updateRow(player.id, "goals", v)}
-                      />
-                      <MiniStepper
-                        label={es.match.assists}
-                        value={row.assists}
-                        max={30}
-                        onChange={(v) => updateRow(player.id, "assists", v)}
-                      />
-                      <MiniStepper
-                        label={es.match.ownGoals}
-                        value={row.ownGoals}
-                        max={30}
-                        onChange={(v) => updateRow(player.id, "ownGoals", v)}
-                      />
-                      {rowShowsSaves && (
-                        <MiniStepper
-                          label={es.match.saves}
-                          value={row.saves}
-                          max={99}
-                          onChange={(v) => updateRow(player.id, "saves", v)}
-                        />
-                      )}
-                    </div>
-                  </div>
+                    displayName={player.displayName}
+                    avatarUrl={player.avatarUrl}
+                    values={row}
+                    showSaves={showSaves || player.position === "POR"}
+                    onChange={(field, value) => updateRow(player.id, field, value)}
+                  />
                 );
               })}
             </div>

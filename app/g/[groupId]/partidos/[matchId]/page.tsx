@@ -3,7 +3,10 @@ import { notFound } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FinalizeButton } from "@/components/match/finalize-button";
+import { MatchResult, type MatchResultPlayerStat } from "@/components/match/match-result";
 import { RatingForm, type RatingFormPlayer, type RatingPrefill } from "@/components/match/rating-form";
+import { ResolveDisputeForm } from "@/components/match/resolve-dispute-form";
 import { ScoreForm } from "@/components/match/score-form";
 import { StatsForm, type StatFormPlayer, type StatPrefill } from "@/components/match/stats-form";
 import { es } from "@/messages/es";
@@ -35,7 +38,14 @@ export default async function MatchDetailPage({
 
   if (!match || match.group_id !== groupId) notFound();
 
-  const [{ data: teamRows }, { data: participantRows }, { data: membership }, { data: group }] = await Promise.all([
+  const [
+    { data: teamRows },
+    { data: participantRows },
+    { data: membership },
+    { data: group },
+    { data: matchResultRow },
+    { data: matchStatsRows },
+  ] = await Promise.all([
     supabase.from("match_teams").select("id, side, name, color").eq("match_id", matchId),
     supabase
       .from("match_participants")
@@ -43,6 +53,11 @@ export default async function MatchDetailPage({
       .eq("match_id", matchId),
     supabase.from("group_members").select("role").eq("group_id", groupId).eq("user_id", userId).maybeSingle(),
     supabase.from("groups").select("settings").eq("id", groupId).maybeSingle(),
+    supabase.from("match_results").select("team1_goals, team2_goals, pens1, pens2").eq("match_id", matchId).maybeSingle(),
+    supabase
+      .from("match_stats")
+      .select("player_id, goals, assists, own_goals, saves, clean_sheet, is_mvp, median_rating")
+      .eq("match_id", matchId),
   ]);
 
   const myRole = membership?.role as GroupRole | undefined;
@@ -121,6 +136,29 @@ export default async function MatchDetailPage({
       isGk: p.players.primary_position === "POR",
     }));
 
+  const participantByPlayerId = new Map(participants.map((p) => [p.player_id, p]));
+  const matchResultStats: MatchResultPlayerStat[] = (matchStatsRows ?? []).flatMap((s) => {
+    const participant = participantByPlayerId.get(s.player_id);
+    if (!participant) return [];
+    const side = participant.team_id === team1?.id ? 1 : participant.team_id === team2?.id ? 2 : null;
+    if (side === null) return [];
+    return [
+      {
+        playerId: s.player_id,
+        displayName: participant.players.display_name,
+        avatarUrl: participant.players.avatar_url,
+        side,
+        goals: s.goals,
+        assists: s.assists,
+        ownGoals: s.own_goals,
+        saves: s.saves,
+        cleanSheet: s.clean_sheet,
+        isMvp: s.is_mvp,
+        medianRating: s.median_rating,
+      },
+    ];
+  });
+
   function PlayerLink({ playerId, displayName, avatarUrl }: { playerId: string; displayName: string; avatarUrl: string | null }) {
     return (
       <Link href={`/g/${groupId}/jugadores/${playerId}`} className="flex items-center gap-2">
@@ -154,6 +192,11 @@ export default async function MatchDetailPage({
           <Button asChild variant="outline" size="sm" className="mt-2 self-start">
             <Link href={`/g/${groupId}/partidos/${matchId}/equipos`}>{es.match.goToLineup}</Link>
           </Button>
+        )}
+        {(match.status === "reporting" || match.status === "pending_finalize") && admin && (
+          <div className="mt-2">
+            <FinalizeButton matchId={matchId} />
+          </div>
         )}
       </div>
 
@@ -241,7 +284,11 @@ export default async function MatchDetailPage({
 
       {(match.status === "reporting" || match.status === "pending_finalize") && (
         <div className="flex flex-col gap-2">
-          {!canRate ? (
+          {match.status === "pending_finalize" && !ratingOpen ? (
+            <p className="text-sm text-muted-foreground">
+              {es.match.waitingRatings(match.rating_deadline ?? match.scheduled_at)}
+            </p>
+          ) : !canRate ? (
             <p className="text-sm text-muted-foreground">{es.match.notParticipant}</p>
           ) : !ratingOpen ? (
             <p className="text-sm text-muted-foreground">{es.match.windowClosed}</p>
@@ -249,6 +296,45 @@ export default async function MatchDetailPage({
             <RatingForm groupId={groupId} matchId={matchId} players={ratingFormPlayers} prefill={ratingPrefill} />
           )}
         </div>
+      )}
+
+      {match.status === "disputed" && (
+        <div className="flex flex-col gap-4">
+          {admin ? (
+            <ResolveDisputeForm
+              groupId={groupId}
+              matchId={matchId}
+              team1Name={team1?.name ?? es.matches.team1Default}
+              team2Name={team2?.name ?? es.matches.team2Default}
+              players={statFormPlayers}
+              prefill={statPrefill}
+              initialTeam1Goals={myScoreReport?.team1Goals ?? null}
+              initialTeam2Goals={myScoreReport?.team2Goals ?? null}
+            />
+          ) : (
+            <div className="flex flex-col gap-1 rounded-xl bg-card p-4 ring-1 ring-destructive/30">
+              <h3 className="text-sm font-medium">{es.match.disputedTitle}</h3>
+              <p className="text-xs text-muted-foreground">{es.match.disputedBody}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {match.status === "finalized" && matchResultRow && (
+        <MatchResult
+          groupId={groupId}
+          team1Name={team1?.name ?? es.matches.team1Default}
+          team2Name={team2?.name ?? es.matches.team2Default}
+          team1Color={team1?.color}
+          team2Color={team2?.color}
+          result={{
+            team1Goals: matchResultRow.team1_goals,
+            team2Goals: matchResultRow.team2_goals,
+            pens1: matchResultRow.pens1,
+            pens2: matchResultRow.pens2,
+          }}
+          stats={matchResultStats}
+        />
       )}
     </div>
   );

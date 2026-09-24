@@ -20,7 +20,7 @@ const STATUS_VARIANT: Record<MatchStatus, "default" | "outline" | "destructive">
 };
 
 const MATCH_SELECT =
-  "id, scheduled_at, venue, status, match_teams(side, name), match_results(team1_goals, team2_goals)";
+  "id, scheduled_at, venue, status, match_teams(side, name), match_results(team1_goals, team2_goals, pens1, pens2)";
 
 type MatchRow = {
   id: string;
@@ -28,13 +28,14 @@ type MatchRow = {
   venue: string | null;
   status: MatchStatus;
   match_teams: { side: number; name: string }[];
-  match_results: { team1_goals: number; team2_goals: number } | null;
+  match_results: { team1_goals: number; team2_goals: number; pens1: number | null; pens2: number | null } | null;
 };
 
 function MatchCard({ groupId, match }: { groupId: string; match: MatchRow }) {
   const team1 = match.match_teams.find((t) => t.side === 1);
   const team2 = match.match_teams.find((t) => t.side === 2);
   const result = match.match_results;
+  const pensLabel = result && result.pens1 !== null && result.pens2 !== null ? ` (${result.pens1}-${result.pens2} pen.)` : "";
 
   return (
     <Link href={`/g/${groupId}/partidos/${match.id}`}>
@@ -46,7 +47,7 @@ function MatchCard({ groupId, match }: { groupId: string; match: MatchRow }) {
             {team1 && team2 && (
               <p className="mt-0.5 truncate text-xs text-muted-foreground">
                 {team1.name}
-                {result ? ` ${result.team1_goals} - ${result.team2_goals} ` : " vs. "}
+                {result ? ` ${result.team1_goals} - ${result.team2_goals}${pensLabel} ` : " vs. "}
                 {team2.name}
               </p>
             )}
