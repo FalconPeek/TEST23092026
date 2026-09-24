@@ -5,7 +5,20 @@ describe("safeNextPath", () => {
   it("keeps same-origin relative paths", () => {
     expect(safeNextPath("/g/abc?tab=1")).toBe("/g/abc?tab=1");
   });
-  it.each([null, undefined, "", "https://evil.com", "//evil.com", "/\\evil.com", "g/abc"])(
+  it.each([
+    null,
+    undefined,
+    "",
+    "https://evil.com",
+    "//evil.com",
+    "/\\evil.com",
+    "g/abc",
+    "/\t/evil.com",
+    "/\n/evil.com",
+    "/\r//evil.com",
+    "/g/\\..\\\\evil.com",
+    "/\u0000/evil.com",
+  ])(
     "falls back to / for %s",
     (value) => {
       expect(safeNextPath(value)).toBe("/");

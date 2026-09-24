@@ -9,8 +9,20 @@ export function siteUrl(): string {
   return url.endsWith("/") ? url : `${url}/`;
 }
 
+const GUARD_ORIGIN = "http://picado.invalid";
+// Browsers strip tabs/newlines and treat "\" as "/", so "/<TAB>/evil.com" would become
+// "//evil.com" (protocol-relative, off-site): reject control chars and backslashes outright.
+const UNSAFE_CHARS = /[\u0000-\u001f\u007f\\]/;
+
 /** Only allow same-origin relative paths as post-login destinations (open-redirect guard). */
 export function safeNextPath(next: string | null | undefined): string {
-  if (!next || !next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) return "/";
-  return next;
+  if (!next || !next.startsWith("/") || next.startsWith("//") || UNSAFE_CHARS.test(next)) return "/";
+  let url: URL;
+  try {
+    url = new URL(next, GUARD_ORIGIN);
+  } catch {
+    return "/";
+  }
+  if (url.origin !== GUARD_ORIGIN) return "/";
+  return `${url.pathname}${url.search}${url.hash}`;
 }
