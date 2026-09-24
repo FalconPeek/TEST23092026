@@ -90,6 +90,23 @@ export const playStyleSettingsSchema = z
   })
   .prefault({});
 
+/** FUT-style squads (M7): chemistry and team rating parameters. */
+const squadSettingsSchema = z
+  .object({
+    chem_primary_position: z.int().min(0).max(3).default(2),
+    chem_alt_position: z.int().min(0).max(3).default(1),
+    chem_link: z.int().min(0).max(3).default(1),
+    /** Shared team appearances (finalized matches on the same side) needed for a link. */
+    link_min_matches: z.int().min(1).max(50).default(3),
+    chem_club: z.int().min(0).max(3).default(1),
+    /** Squad members (including the player) from the same club needed for the club point. */
+    club_min: z.int().min(2).max(11).default(3),
+    chem_max_per_player: z.int().min(1).max(10).default(3),
+    /** Days a published squad stays eligible for the weekly featured squad. */
+    featured_window_days: z.int().min(1).max(60).default(7),
+  })
+  .prefault({});
+
 export const groupSettingsSchema = z.object({
   default_team_size: z.union([z.literal(5), z.literal(6), z.literal(7), z.literal(8), z.literal(9), z.literal(11)]).default(5),
   rating: ratingSettingsSchema.prefault({}),
@@ -99,6 +116,7 @@ export const groupSettingsSchema = z.object({
   playstyles: playStyleSettingsSchema,
   badges_enabled: z.boolean().default(true),
   spectators_can_rate: z.boolean().default(true),
+  squads: squadSettingsSchema,
 });
 
 export type GroupSettings = z.infer<typeof groupSettingsSchema>;
@@ -106,6 +124,7 @@ export type GroupSettingsInput = z.input<typeof groupSettingsSchema>;
 export type RatingSettings = GroupSettings["rating"];
 export type TierSettings = GroupSettings["tiers"];
 export type PlayStyleSettings = GroupSettings["playstyles"];
+export type SquadSettings = GroupSettings["squads"];
 
 export const defaultGroupSettings: GroupSettings = groupSettingsSchema.parse({});
 
