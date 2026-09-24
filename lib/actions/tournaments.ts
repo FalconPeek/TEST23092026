@@ -187,6 +187,8 @@ const entryInputSchema = z.object({
   name: nameField,
   seed: z.union([z.int().min(1), z.null()]).optional(),
   playerIds: z.array(uuid).default([]),
+  /** M7: the entry plays as one of the group's clubs (name/colors/crest). */
+  clubId: uuid.nullable().optional(),
 });
 
 const saveTournamentEntriesSchema = z.object({
@@ -198,7 +200,7 @@ const saveTournamentEntriesSchema = z.object({
 export async function saveTournamentEntries(input: {
   tournamentId: string;
   groupId: string;
-  entries: { name: string; seed?: number | null; playerIds: string[] }[];
+  entries: { name: string; seed?: number | null; playerIds: string[]; clubId?: string | null }[];
 }): Promise<ActionResult<void>> {
   const parsed = saveTournamentEntriesSchema.safeParse(input);
   if (!parsed.success) return fail(es.errors.validation);
@@ -210,6 +212,7 @@ export async function saveTournamentEntries(input: {
     name: e.name,
     seed: e.seed ?? null,
     player_ids: e.playerIds,
+    club_id: e.clubId ?? null,
   })) as Json;
 
   const supabase = await createClient();

@@ -196,8 +196,8 @@ describe("saveTournamentEntries", () => {
     expect(mockRpc).toHaveBeenCalledWith("save_tournament_entries", {
       p_tournament_id: TOURNAMENT_ID,
       p_entries: [
-        { name: "Equipo 1", seed: 1, player_ids: [ENTRY_ID] },
-        { name: "Equipo 2", seed: null, player_ids: [] },
+        { name: "Equipo 1", seed: 1, player_ids: [ENTRY_ID], club_id: null },
+        { name: "Equipo 2", seed: null, player_ids: [], club_id: null },
       ],
     });
   });
