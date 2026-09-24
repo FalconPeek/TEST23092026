@@ -7,6 +7,8 @@ import { seededRng } from "@/lib/brackets";
 import { createClient, getUserId } from "@/lib/supabase/server";
 import { ok, fail, type ActionResult } from "@/lib/actions/result";
 import { mapDbError } from "@/lib/actions/errors";
+import { notifyTournamentGeneratedBestEffort } from "@/lib/server/tournament-generated";
+import { handleTournamentAdvance } from "@/lib/server/tournament-advance";
 import { createSupabaseTournamentRepo } from "@/lib/server/tournament-repo";
 import { afterTournamentMatchCompleted, buildIndividualEntries, generateBracket } from "@/lib/server/tournaments";
 import { tournamentFormats, tournamentSettingsSchema, type TournamentFormat } from "@/lib/settings/tournament";
@@ -257,6 +259,8 @@ export async function generateTournamentBracket(input: {
     return fail(mapCaughtError(err));
   }
 
+  await notifyTournamentGeneratedBestEffort(parsed.data.tournamentId);
+
   revalidatePath(`/g/${parsed.data.groupId}/torneos`);
   revalidatePath(`/g/${parsed.data.groupId}/torneos/${parsed.data.tournamentId}`);
   return ok(undefined);
@@ -335,7 +339,11 @@ async function tryAdvance(
 ): Promise<void> {
   try {
     const repo = createSupabaseTournamentRepo(supabase);
-    await afterTournamentMatchCompleted(repo, tournamentId, seededRng(Date.now()));
+    const rng = seededRng(Date.now());
+    const result = await afterTournamentMatchCompleted(repo, tournamentId, rng);
+    // handleTournamentAdvance makes its own admin client (badges/notifications need service_role,
+    // this action only has the caller's session client) and is itself best-effort/never-throws.
+    await handleTournamentAdvance(tournamentId, result, rng);
   } catch {
     // Swallowed deliberately -- see doc comment above.
   }

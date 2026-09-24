@@ -87,6 +87,10 @@ export interface TournamentRepo {
   appendSwissRound(tournamentId: string, stageEngineKey: string, matches: Match[]): Promise<void>;
   /** Resolves knockout qualifier placeholders from finished group standings (seed_knockout_from_groups). */
   seedKnockoutFromGroups(tournamentId: string, qualifiers: GroupQualifiers[]): Promise<void>;
+  /** True once a tournament_champion player_badges row exists for this tournament (any player) --
+   * guards lib/server/tournaments.ts's awardTournamentChampionIfDone against re-awarding (it's a
+   * repeatable badge) on every subsequent afterTournamentMatchCompleted call after the final. */
+  hasAwardedTournamentChampion(tournamentId: string): Promise<boolean>;
 }
 
 const DEFAULT_MU = 25;
@@ -326,6 +330,16 @@ export function createSupabaseTournamentRepo(client: Client): TournamentRepo {
         p_qualifiers: qualifiers as unknown as Json,
       });
       if (error) throw error;
+    },
+
+    async hasAwardedTournamentChampion(tournamentId) {
+      const { count, error } = await client
+        .from("player_badges")
+        .select("player_id", { count: "exact", head: true })
+        .eq("tournament_id", tournamentId)
+        .eq("badge_code", "tournament_champion");
+      if (error) throw error;
+      return (count ?? 0) > 0;
     },
   };
 }

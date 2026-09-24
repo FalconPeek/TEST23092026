@@ -16,6 +16,9 @@ import {
   type TournamentState,
 } from "@/lib/brackets";
 import { balanceTeams, type BalancePlayer } from "@/lib/rating";
+import type { PlayerBadgeAward } from "@/lib/server/badges";
+import { awardTournamentBadges } from "@/lib/server/badges";
+import type { BadgesRepo } from "@/lib/server/badges-repo";
 import type { EntryRow, GroupQualifiers, TournamentRepo } from "./tournament-repo";
 
 export class TournamentNotFoundError extends Error {
@@ -134,7 +137,13 @@ function groupHasPendingQualifiers(state: TournamentState, groupLabel: string): 
   );
 }
 
-async function seedDueGroups(repo: TournamentRepo, tournamentId: string, state: TournamentState, rng: Rng): Promise<void> {
+/** Engine-key ids (Match.id, stable across reloads -- see tournament-repo.ts's loadState doc
+ * comment) of every placeholder match that referenced one of the groups just resolved. Returned
+ * so afterTournamentMatchCompleted can, after reloading state, tell exactly which matches became
+ * fully ready (both entries assigned) *because of this call* -- as opposed to matches that were
+ * already ready from an earlier group's seeding, which must NOT be re-reported (or a repeated
+ * caller would re-notify participants of a match that's been ready for a while). */
+async function seedDueGroups(repo: TournamentRepo, tournamentId: string, state: TournamentState, rng: Rng): Promise<string[]> {
   const qualifiersPerGroup = state.settings.groups_ko.qualifiers_per_group;
   const qualifiers: GroupQualifiers[] = [];
 
@@ -149,23 +158,51 @@ async function seedDueGroups(repo: TournamentRepo, tournamentId: string, state: 
     qualifiers.push({ group: group.label, entries: ranked.slice(0, qualifiersPerGroup) });
   }
 
-  if (qualifiers.length > 0) await repo.seedKnockoutFromGroups(tournamentId, qualifiers);
+  if (qualifiers.length === 0) return [];
+  await repo.seedKnockoutFromGroups(tournamentId, qualifiers);
+
+  const seededLabels = new Set(qualifiers.map((q) => q.group));
+  return state.matches
+    .filter((m) => (m.entry1From && seededLabels.has(m.entry1From.fromGroup)) || (m.entry2From && seededLabels.has(m.entry2From.fromGroup)))
+    .map((m) => m.id);
 }
 
-async function appendSwissRoundIfDue(repo: TournamentRepo, tournamentId: string, state: TournamentState, rng: Rng): Promise<void> {
+/** Returns the brand-new round's matches (or [] if no round was due), which -- unlike groups_ko's
+ * placeholders -- are unambiguously "newly ready": a swiss round is generated with both entries of
+ * every pairing already assigned, all at once. */
+async function appendSwissRoundIfDue(repo: TournamentRepo, tournamentId: string, state: TournamentState, rng: Rng): Promise<Match[]> {
   const stage = state.stages[0];
-  if (!stage) return;
+  if (!stage) return [];
   const currentRound = state.swissRoundsGenerated ?? 0;
   const totalRounds = state.settings.swiss.rounds ?? defaultSwissRounds(state.entries.length);
-  if (currentRound === 0 || currentRound >= totalRounds) return; // nothing generated yet, or event is over
+  if (currentRound === 0 || currentRound >= totalRounds) return []; // nothing generated yet, or event is over
 
   const currentRoundMatches = state.matches.filter((m) => m.stageId === stage.id && m.round === currentRound);
-  if (currentRoundMatches.length === 0 || !currentRoundMatches.every((m) => m.status === "completed")) return;
+  if (currentRoundMatches.length === 0 || !currentRoundMatches.every((m) => m.status === "completed")) return [];
 
   const next = nextSwissRound(state, rng);
   const newRoundMatches = next.matches.filter((m) => m.stageId === stage.id && m.round === currentRound + 1);
   await repo.appendSwissRound(tournamentId, stage.id, newRoundMatches);
+  return newRoundMatches;
 }
+
+export interface NewlyReadyMatch {
+  round: number;
+  /** [entry1Id, entry2Id] -- both always non-null by construction (only fully-resolved matches
+   * are reported, see seedDueGroups/appendSwissRoundIfDue's doc comments). */
+  entryIds: [string, string];
+}
+
+export interface AdvanceResult {
+  /** Matches that became ready to be scheduled (both entries assigned) as a DIRECT result of this
+   * call -- for the caller to fan out `tournament_match_ready` notifications from. Empty for
+   * formats without a pending-placeholder concept (single_elim/double_elim/league already have
+   * every match's entries assigned once the bracket/table is generated) or when nothing new
+   * happened this call (the common case: most finalize/confirm calls don't complete a group/round). */
+  newlyReadyMatches: NewlyReadyMatch[];
+}
+
+const EMPTY_ADVANCE_RESULT: AdvanceResult = { newlyReadyMatches: [] };
 
 /**
  * Progresses a tournament after one of its matches' results changed: for groups_ko, seeds the
@@ -174,15 +211,75 @@ async function appendSwissRoundIfDue(repo: TournamentRepo, tournamentId: string,
  * on every call (no separate "already done" flag needed), so it's safe -- and a no-op -- to call
  * after every confirm/edit/finalize, including ones that don't actually complete anything new.
  */
-export async function afterTournamentMatchCompleted(repo: TournamentRepo, tournamentId: string, rng: Rng): Promise<void> {
+export async function afterTournamentMatchCompleted(repo: TournamentRepo, tournamentId: string, rng: Rng): Promise<AdvanceResult> {
   const state = await repo.loadState(tournamentId);
-  if (!state) return;
+  if (!state) return EMPTY_ADVANCE_RESULT;
 
   if (state.format === "groups_ko") {
-    await seedDueGroups(repo, tournamentId, state, rng);
-  } else if (state.format === "swiss") {
-    await appendSwissRoundIfDue(repo, tournamentId, state, rng);
+    const affectedIds = await seedDueGroups(repo, tournamentId, state, rng);
+    if (affectedIds.length === 0) return EMPTY_ADVANCE_RESULT;
+    const after = await repo.loadState(tournamentId);
+    const affectedSet = new Set(affectedIds);
+    const newlyReadyMatches: NewlyReadyMatch[] = (after?.matches ?? [])
+      .filter((m) => affectedSet.has(m.id) && m.status === "ready" && m.entry1Id !== null && m.entry2Id !== null)
+      .map((m) => ({ round: m.round, entryIds: [m.entry1Id as string, m.entry2Id as string] }));
+    return { newlyReadyMatches };
   }
+
+  if (state.format === "swiss") {
+    const newRoundMatches = await appendSwissRoundIfDue(repo, tournamentId, state, rng);
+    const newlyReadyMatches: NewlyReadyMatch[] = newRoundMatches
+      .filter((m) => m.entry1Id !== null && m.entry2Id !== null)
+      .map((m) => ({ round: m.round, entryIds: [m.entry1Id as string, m.entry2Id as string] }));
+    return { newlyReadyMatches };
+  }
+
+  return EMPTY_ADVANCE_RESULT;
+}
+
+/** The winning entry once the tournament is fully decided, or null while it's still in progress.
+ * Bracket formats (single_elim/double_elim/groups_ko) finish when their `final` match completes;
+ * league/swiss have no elimination final, so "finished" means every match is completed/archived
+ * and the champion is the top-ranked standings row (`rng` only matters if that ranking bottoms out
+ * at a 'lots' tiebreaker). */
+function computeChampionEntryId(state: TournamentState, rng?: Rng): string | null {
+  const finalMatch = state.matches.find((m) => m.bracket === "final");
+  if (finalMatch) return finalMatch.status === "completed" && finalMatch.winnerEntryId ? finalMatch.winnerEntryId : null;
+
+  if (state.matches.length === 0) return null;
+  if (!state.matches.every((m) => m.status === "completed" || m.status === "archived")) return null;
+
+  const tableMatches = state.matches.filter((m) => m.bracket === "group" || m.bracket === "swiss");
+  const rows = computeStandingsRows(tableMatches, state.settings, rng, state.settings.tiebreakers);
+  return rows[0]?.entryId ?? null;
+}
+
+/**
+ * Awards tournament_champion (lib/badges/engine.ts) to every player on the winning entry, once,
+ * the first time the tournament is detected as decided -- guarded by
+ * TournamentRepo.hasAwardedTournamentChampion so repeated calls (this runs from the same places as
+ * afterTournamentMatchCompleted) don't re-increment the badge's repeatable count. Returns [] while
+ * the tournament isn't finished yet, if it has no players on the winning entry (e.g. a bye-only
+ * bracket edge case), or if it was already awarded.
+ */
+export async function awardTournamentChampionIfDone(
+  repo: TournamentRepo,
+  badgesRepo: BadgesRepo,
+  tournamentId: string,
+  badgesEnabled: boolean,
+  rng?: Rng,
+): Promise<PlayerBadgeAward[]> {
+  const state = await repo.loadState(tournamentId);
+  if (!state) return [];
+  const championEntryId = computeChampionEntryId(state, rng);
+  if (!championEntryId) return [];
+  if (await repo.hasAwardedTournamentChampion(tournamentId)) return [];
+
+  const entries = await repo.loadEntries(tournamentId);
+  const champion = entries.find((e) => e.id === championEntryId);
+  if (!champion || champion.playerIds.length === 0) return [];
+
+  return awardTournamentBadges(badgesRepo, champion.playerIds, tournamentId, badgesEnabled);
 }
 
 export interface StageStandings {

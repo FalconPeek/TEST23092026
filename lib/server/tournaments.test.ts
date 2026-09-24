@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { BYE, seededRng, type Match, type TournamentState } from "@/lib/brackets";
 import { setSlot, toMatchMap } from "@/lib/brackets/propagation";
+import type { BadgeAward, BadgeCode } from "@/lib/badges/engine";
+import type { BadgesRepo } from "@/lib/server/badges-repo";
 import { tournamentSettingsSchema, type TournamentFormat, type TournamentSettings } from "@/lib/settings/tournament";
 import {
   afterTournamentMatchCompleted,
+  awardTournamentChampionIfDone,
   buildIndividualEntries,
   computeStandings,
   generateBracket,
@@ -34,6 +37,7 @@ class FakeTournamentRepo implements TournamentRepo {
   persistBracketCalls: { tournamentId: string; state: TournamentState }[] = [];
   seedKnockoutCalls: { tournamentId: string; qualifiers: GroupQualifiers[] }[] = [];
   appendSwissCalls: { tournamentId: string; stageEngineKey: string; matches: Match[] }[] = [];
+  awardedChampionTournamentIds = new Set<string>();
 
   async loadTournament(tournamentId: string) {
     return this.tournaments.get(tournamentId) ?? null;
@@ -115,6 +119,10 @@ class FakeTournamentRepo implements TournamentRepo {
       });
     }
     state.matches = [...map.values()];
+  }
+
+  async hasAwardedTournamentChampion(tournamentId: string) {
+    return this.awardedChampionTournamentIds.has(tournamentId);
   }
 }
 
@@ -312,10 +320,13 @@ describe("afterTournamentMatchCompleted: groups_ko", () => {
     const groupAMatch = state.matches.find((m) => m.groupId && groupOfEntry.get(m.entry1Id as string) === "A")!;
     completeMatch(state, groupAMatch.id, groupA[0], 3, 1);
 
-    await afterTournamentMatchCompleted(repo, "t1", RNG);
+    const result1 = await afterTournamentMatchCompleted(repo, "t1", RNG);
 
     expect(repo.seedKnockoutCalls).toHaveLength(1);
     expect(repo.seedKnockoutCalls[0]!.qualifiers).toEqual([{ group: "A", entries: [groupA[0], groupA[1]] }]);
+    // Group A's qualifiers only fill HALF of each round-1 match's slots (the other half waits on
+    // group B), so nothing is fully ready yet.
+    expect(result1.newlyReadyMatches).toEqual([]);
 
     // Idempotent: calling again with nothing new completed does not re-seed group A.
     await afterTournamentMatchCompleted(repo, "t1", RNG);
@@ -324,9 +335,16 @@ describe("afterTournamentMatchCompleted: groups_ko", () => {
     const groupBMatch = repo.states.get("t1")!.matches.find((m) => m.groupId && groupOfEntry.get(m.entry1Id as string) === "B")!;
     completeMatch(repo.states.get("t1")!, groupBMatch.id, groupB[1], 2, 0);
 
-    await afterTournamentMatchCompleted(repo, "t1", RNG);
+    const result2 = await afterTournamentMatchCompleted(repo, "t1", RNG);
     expect(repo.seedKnockoutCalls).toHaveLength(2);
     expect(repo.seedKnockoutCalls[1]!.qualifiers).toEqual([{ group: "B", entries: [groupB[1], groupB[0]] }]);
+    // Now both sides of every round-1 KO match are filled: exactly the matches group B's
+    // qualifiers completed are reported, not group A's (already reported/consumed on result1).
+    expect(result2.newlyReadyMatches.length).toBeGreaterThan(0);
+    for (const m of result2.newlyReadyMatches) {
+      expect(m.round).toBe(1);
+      expect(m.entryIds).toHaveLength(2);
+    }
 
     // Every knockout round-1 placeholder is now resolved to a real entry (no BYE, no null).
     const finalState = repo.states.get("t1")!;
@@ -366,10 +384,12 @@ describe("afterTournamentMatchCompleted: swiss", () => {
       completeMatch(state, m.id, m.entry1Id as string, 1, 0);
     }
 
-    await afterTournamentMatchCompleted(repo, "t1", RNG);
+    const result = await afterTournamentMatchCompleted(repo, "t1", RNG);
     expect(repo.appendSwissCalls).toHaveLength(1);
     const round2 = repo.states.get("t1")!.matches.filter((m) => m.round === 2);
     expect(round2).toHaveLength(2);
+    expect(result.newlyReadyMatches).toHaveLength(2);
+    expect(result.newlyReadyMatches.every((m) => m.round === 2)).toBe(true);
 
     // Idempotent while round 2 is still in progress.
     await afterTournamentMatchCompleted(repo, "t1", RNG);
@@ -394,7 +414,7 @@ describe("afterTournamentMatchCompleted: single_elim / double_elim / league", ()
       seedEntries(repo, "t1", [entryRow(1), entryRow(2), entryRow(3), entryRow(4)]);
       await generateBracket(repo, "t1", RNG);
 
-      await expect(afterTournamentMatchCompleted(repo, "t1", RNG)).resolves.toBeUndefined();
+      await expect(afterTournamentMatchCompleted(repo, "t1", RNG)).resolves.toEqual({ newlyReadyMatches: [] });
       expect(repo.seedKnockoutCalls).toHaveLength(0);
       expect(repo.appendSwissCalls).toHaveLength(0);
     }
@@ -441,5 +461,105 @@ describe("computeStandings", () => {
     expect(result[0]!.rows).toHaveLength(4);
     // Buchholz is only meaningful under swiss.tiebreakers; sanity-check it was actually computed.
     expect(result[0]!.rows.some((r) => r.buchholz > 0)).toBe(true);
+  });
+});
+
+describe("awardTournamentChampionIfDone", () => {
+  class FakeBadgesRepo implements BadgesRepo {
+    saved: { playerId: string; awards: BadgeAward[] }[] = [];
+    async loadPlayerMatchHistory() {
+      return [];
+    }
+    async loadExistingBadgeCodes() {
+      return new Set<BadgeCode>();
+    }
+    async loadScoutingTargetCount() {
+      return 0;
+    }
+    async saveAwards(playerId: string, awards: BadgeAward[]) {
+      this.saved.push({ playerId, awards });
+    }
+  }
+
+  it("returns [] while a single_elim tournament's final hasn't completed yet", async () => {
+    const repo = new FakeTournamentRepo();
+    seedTournament(repo, "t1", "single_elim");
+    seedEntries(repo, "t1", [entryRow(1), entryRow(2), entryRow(3), entryRow(4)]);
+    await generateBracket(repo, "t1", RNG);
+
+    const badgesRepo = new FakeBadgesRepo();
+    expect(await awardTournamentChampionIfDone(repo, badgesRepo, "t1", true, RNG)).toEqual([]);
+    expect(badgesRepo.saved).toEqual([]);
+  });
+
+  it("awards tournament_champion to the final's winner's players once single_elim finishes", async () => {
+    const repo = new FakeTournamentRepo();
+    seedTournament(repo, "t1", "single_elim");
+    seedEntries(repo, "t1", [
+      { ...entryRow(1), playerIds: ["p1", "p2"] },
+      { ...entryRow(2), playerIds: ["p3", "p4"] },
+    ]);
+    await generateBracket(repo, "t1", RNG);
+    const state = repo.states.get("t1")!;
+    const final = state.matches.find((m) => m.bracket === "final")!;
+    completeMatch(state, final.id, final.entry1Id as string, 2, 1);
+    const winnerEntryId = final.entry1Id as string;
+
+    const badgesRepo = new FakeBadgesRepo();
+    const awards = await awardTournamentChampionIfDone(repo, badgesRepo, "t1", true, RNG);
+
+    const expectedPlayers = (repo.entries.get("t1") ?? []).find((e) => e.id === winnerEntryId)!.playerIds;
+    expect(awards.map((a) => a.playerId).sort()).toEqual([...expectedPlayers].sort());
+    expect(awards.every((a) => a.code === "tournament_champion")).toBe(true);
+
+    // Idempotent: marking it as already-awarded (what the real repo's hasAwardedTournamentChampion
+    // would report once saveAwards actually landed a row) stops a second call from re-awarding.
+    repo.awardedChampionTournamentIds.add("t1");
+    expect(await awardTournamentChampionIfDone(repo, badgesRepo, "t1", true, RNG)).toEqual([]);
+  });
+
+  it("respects badges_enabled = false", async () => {
+    const repo = new FakeTournamentRepo();
+    seedTournament(repo, "t1", "single_elim");
+    seedEntries(repo, "t1", [
+      { ...entryRow(1), playerIds: ["p1"] },
+      { ...entryRow(2), playerIds: ["p2"] },
+    ]);
+    await generateBracket(repo, "t1", RNG);
+    const state = repo.states.get("t1")!;
+    const final = state.matches.find((m) => m.bracket === "final")!;
+    completeMatch(state, final.id, final.entry1Id as string, 1, 0);
+
+    const badgesRepo = new FakeBadgesRepo();
+    expect(await awardTournamentChampionIfDone(repo, badgesRepo, "t1", false, RNG)).toEqual([]);
+  });
+
+  it("awards the top standings entry's players once a league (no elimination final) fully completes", async () => {
+    const repo = new FakeTournamentRepo();
+    seedTournament(repo, "t1", "league");
+    seedEntries(repo, "t1", [
+      { ...entryRow(1), playerIds: ["p1"] },
+      { ...entryRow(2), playerIds: ["p2"] },
+      { ...entryRow(3), playerIds: ["p3"] },
+    ]);
+    await generateBracket(repo, "t1", RNG);
+    const state = repo.states.get("t1")!;
+    // e1 wins every match it plays -> tops the table on points.
+    for (const m of state.matches) {
+      if (m.status === "completed") continue; // already-resolved BYE
+      const winner = m.entry1Id === "e1" || m.entry2Id === "e1" ? "e1" : (m.entry1Id as string);
+      completeMatch(state, m.id, winner, 3, 0);
+    }
+
+    const badgesRepo = new FakeBadgesRepo();
+    const awards = await awardTournamentChampionIfDone(repo, badgesRepo, "t1", true, RNG);
+    expect(awards).toEqual([{ playerId: "p1", code: "tournament_champion", tournamentId: "t1" }]);
+  });
+
+  it("returns [] for a tournament with no bracket yet", async () => {
+    const repo = new FakeTournamentRepo();
+    seedTournament(repo, "t1", "single_elim");
+    const badgesRepo = new FakeBadgesRepo();
+    expect(await awardTournamentChampionIfDone(repo, badgesRepo, "t1", true, RNG)).toEqual([]);
   });
 });

@@ -45,6 +45,7 @@ describe.skipIf(!RUN_DB_TESTS)("finalizeMatch against the local Supabase stack",
   let groupId: string;
   let matchId: string;
   const playerId = new Map<string, string>();
+  const userId = new Map<string, string>();
 
   beforeAll(async () => {
     const adminModule = await import("@/lib/supabase/admin");
@@ -113,6 +114,7 @@ describe.skipIf(!RUN_DB_TESTS)("finalizeMatch against the local Supabase stack",
     const p4Id = await playerIdFor(p4.userId);
     const spec1Id = await playerIdFor(spec1.userId);
     playerId.set("p1", p1Id).set("p2", p2Id).set("p3", p3Id).set("p4", p4Id).set("spec1", spec1Id);
+    userId.set("p1", owner.userId).set("p2", p2.userId).set("p3", p3.userId).set("p4", p4.userId).set("spec1", spec1.userId);
 
     const { data: createdMatchId, error: createMatchError } = await owner.client.rpc("create_match", {
       p_group_id: groupId,
@@ -232,8 +234,58 @@ describe.skipIf(!RUN_DB_TESTS)("finalizeMatch against the local Supabase stack",
       expect(card.ovr).toBeLessThanOrEqual(99);
     }
 
+    // Badges (T-M5): this is every team player's first-ever finalized match in this fresh group,
+    // so each gets a one-time first_match award; the MVP (p1), who also scored both of side 1's
+    // goals, additionally gets first_goal (career goals 0 -> 2) and the repeatable mvp badge
+    // (count starts at 1) -- 3 awards total for p1, 1 (just first_match) for p2/p3/p4.
+    const { data: badgeRows } = await admin.from("player_badges").select("*").in("player_id", teamPlayerIds);
+    const badgesByPlayer = new Map<string, string[]>();
+    for (const row of badgeRows ?? []) {
+      badgesByPlayer.set(row.player_id, [...(badgesByPlayer.get(row.player_id) ?? []), row.badge_code]);
+    }
+    for (const id of teamPlayerIds) {
+      expect(badgesByPlayer.get(id)).toContain("first_match");
+    }
+    expect(badgesByPlayer.get(playerId.get("p1")!)).toContain("mvp");
+    expect(badgesByPlayer.get(playerId.get("p1")!)).toContain("first_goal");
+    const p1MvpRow = badgeRows!.find((r) => r.player_id === playerId.get("p1") && r.badge_code === "mvp")!;
+    expect(p1MvpRow.count).toBe(1);
+    expect(p1MvpRow.match_id).toBe(matchId);
+
+    // Notifications (T-M5): match_finalized goes to every roster entry with an auth account
+    // (players + the spectator), best-effort-sent by finalizeMatch itself.
+    const rosterUserIds = [userId.get("p1")!, userId.get("p2")!, userId.get("p3")!, userId.get("p4")!, userId.get("spec1")!];
+    const { data: finalizedNotifRows } = await admin
+      .from("notifications")
+      .select("user_id, kind, payload")
+      .in("user_id", rosterUserIds)
+      .eq("kind", "match_finalized");
+    expect(finalizedNotifRows?.map((r) => r.user_id).sort()).toEqual([...rosterUserIds].sort());
+    for (const row of finalizedNotifRows ?? []) {
+      expect(row.payload).toMatchObject({ url: `/g/${groupId}/partidos/${matchId}` });
+    }
+
+    // badge_awarded notifications: one per (player, badge) awarded above -- p1 gets 3
+    // (first_match + first_goal + mvp), the other 3 team players get 1 (first_match) each.
+    const { data: badgeNotifRows } = await admin
+      .from("notifications")
+      .select("user_id")
+      .in("user_id", [userId.get("p1")!, userId.get("p2")!, userId.get("p3")!, userId.get("p4")!])
+      .eq("kind", "badge_awarded");
+    expect(badgeNotifRows?.filter((r) => r.user_id === userId.get("p1")).length).toBe(3);
+    expect(badgeNotifRows?.filter((r) => r.user_id === userId.get("p2")).length).toBe(1);
+
     // Idempotent against the real DB too: re-running on the now-finalized match is a no-op.
     const secondOutcome = await finalizeMatch(repo, matchId, new Date());
     expect(secondOutcome).toEqual({ matchId, status: "skipped", reason: "already_finalized" });
+
+    // Re-running didn't double-award the one-time first_match badge or its notification.
+    const { data: badgeRowsAfter } = await admin
+      .from("player_badges")
+      .select("count")
+      .eq("player_id", playerId.get("p1")!)
+      .eq("badge_code", "first_match");
+    expect(badgeRowsAfter).toHaveLength(1);
+    expect(badgeRowsAfter![0]!.count).toBe(1);
   });
 });

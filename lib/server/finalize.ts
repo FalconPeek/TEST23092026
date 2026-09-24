@@ -198,6 +198,7 @@ export async function finalizeMatch(repo: FinalizeRepo, matchId: string, now: Da
     if (reconciled.status === "disputed") {
       await repo.setMatchDisputed(matchId);
       await repo.logAudit(matchId, "auto_dispute", { reasons: reconciled.reasons });
+      await tryNotifyDisputed(repo, matchId, graph.groupId, reconciled.reasons);
       return { matchId, status: "disputed", reasons: reconciled.reasons };
     }
     score = reconciled.result;
@@ -220,9 +221,52 @@ export async function finalizeMatch(repo: FinalizeRepo, matchId: string, now: Da
 
   await recomputeCards(repo, matchId, roster, byTarget, playedAt, settings, now);
 
+  await tryAwardMatchBadges(repo, matchId, graph.groupId, roster, settings);
+  await tryNotifyFinalized(repo, matchId, graph.groupId, roster, score);
+
   const tournamentSyncError = await syncTournamentFixture(repo, graph, score, now);
 
   return { matchId, status: "finalized", tournamentSyncError };
+}
+
+/** Best-effort, unlike syncTournamentFixture: badges/notifications have no meaningful error to
+ * surface back to the caller (there's no "resolve it manually" UI for a missed push, the way
+ * there is for a tournament sync error), so failures are swallowed here rather than returned. */
+async function tryAwardMatchBadges(
+  repo: FinalizeRepo,
+  matchId: string,
+  groupId: string,
+  roster: RosterEntry[],
+  settings: GroupSettings,
+): Promise<void> {
+  try {
+    const playerIds = roster.filter((r) => r.role === "player").map((r) => r.playerId);
+    await repo.awardMatchBadges(matchId, groupId, playerIds, settings);
+  } catch {
+    // best-effort -- see doc comment above.
+  }
+}
+
+async function tryNotifyFinalized(
+  repo: FinalizeRepo,
+  matchId: string,
+  groupId: string,
+  roster: RosterEntry[],
+  score: { team1Goals: number; team2Goals: number },
+): Promise<void> {
+  try {
+    await repo.notifyMatchFinalized(matchId, groupId, roster, score);
+  } catch {
+    // best-effort -- see tryAwardMatchBadges's doc comment.
+  }
+}
+
+async function tryNotifyDisputed(repo: FinalizeRepo, matchId: string, groupId: string, reasons: DisputeReason[]): Promise<void> {
+  try {
+    await repo.notifyMatchDisputed(matchId, groupId, reasons);
+  } catch {
+    // best-effort -- see tryAwardMatchBadges's doc comment.
+  }
 }
 
 /** Best-effort: a tournament sync/advancement failure (most commonly PICADO_KO_DRAW on a tied

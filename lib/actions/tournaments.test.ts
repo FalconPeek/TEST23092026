@@ -255,6 +255,15 @@ describe("generateTournamentBracket", () => {
 
     expect(result).toEqual({ ok: false, error: es.common.error });
   });
+
+  it("still succeeds when the best-effort tournament_generated notification can't be sent (no SUPABASE_SECRET_KEY here)", async () => {
+    mockLoadTournament.mockResolvedValue({ entryMode: "teams" });
+    mockGenerateBracket.mockResolvedValue(undefined);
+
+    const result = await generateTournamentBracket({ tournamentId: TOURNAMENT_ID, groupId: GROUP_ID });
+
+    expect(result).toEqual({ ok: true, data: undefined });
+  });
 });
 
 describe("startTournamentMatch", () => {
@@ -307,6 +316,21 @@ describe("confirmTournamentResult / editTournamentResult", () => {
       p_score2: 1,
     }));
     expect(mockAfterTournamentMatchCompleted).toHaveBeenCalledTimes(1);
+  });
+
+  it("still returns ok when afterTournamentMatchCompleted resolves newlyReadyMatches (best-effort champion/ready notifications can't be sent without SUPABASE_SECRET_KEY here)", async () => {
+    mockRpc.mockResolvedValue({ data: null, error: null });
+    mockAfterTournamentMatchCompleted.mockResolvedValue({ newlyReadyMatches: [{ round: 2, entryIds: [ENTRY_ID, "e2"] }] });
+
+    const result = await confirmTournamentResult({
+      tournamentMatchId: TOURNAMENT_MATCH_ID,
+      tournamentId: TOURNAMENT_ID,
+      groupId: GROUP_ID,
+      score1: 2,
+      score2: 1,
+    });
+
+    expect(result).toEqual({ ok: true, data: undefined });
   });
 
   it("still returns ok when the confirmed result's bracket-advancement step throws", async () => {

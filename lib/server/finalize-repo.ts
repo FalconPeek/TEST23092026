@@ -6,10 +6,18 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Rng } from "@/lib/brackets";
-import type { PlayerMatchStats, Side } from "@/lib/reconcile";
+import type { DisputeReason, PlayerMatchStats, Side } from "@/lib/reconcile";
 import type { AttributeKey, MatchFormInput } from "@/lib/rating";
+import { badgeAwardedPayload, matchDisputedPayload, matchFinalizedPayload } from "@/lib/notifications/templates";
+import { awardMatchBadges as awardMatchBadgesForRoster } from "@/lib/server/badges";
+import { createSupabaseBadgesRepo } from "@/lib/server/badges-repo";
+import { awardCardBadgesAndNotify } from "@/lib/server/card-badges";
+import { notify } from "@/lib/server/notifications";
+import { createSupabaseNotificationsRepo } from "@/lib/server/notifications-repo";
+import { loadUserIdsByPlayer } from "@/lib/server/player-users";
 import { recomputePlayer } from "@/lib/server/recompute";
 import { createSupabaseRatingRepo } from "@/lib/server/rating-repo";
+import { handleTournamentAdvance } from "@/lib/server/tournament-advance";
 import { createSupabaseTournamentRepo } from "@/lib/server/tournament-repo";
 import { afterTournamentMatchCompleted } from "@/lib/server/tournaments";
 import { type GroupSettings, parseGroupSettings } from "@/lib/settings/group";
@@ -135,6 +143,22 @@ export interface FinalizeRepo {
   /** Runs lib/server/tournaments.ts's afterTournamentMatchCompleted (groups_ko seeding / next
    * swiss round) for the tournament the just-confirmed fixture belongs to. */
   advanceTournament(tournamentId: string, rng: Rng): Promise<void>;
+
+  /** Evaluates + persists lib/badges/engine.ts's match-triggered badges for every team player on
+   * the roster, and sends a `badge_awarded` notification for whatever was newly awarded. Callers
+   * (finalizeMatch) wrap this in try/catch: a badge/notification failure must never fail
+   * finalization, which has already durably succeeded by the time this runs. */
+  awardMatchBadges(matchId: string, groupId: string, playerIds: string[], settings: GroupSettings): Promise<void>;
+  /** Sends a `match_finalized` notification to every roster entry (players + spectators) with an
+   * auth account (guests, whose players.user_id is null, are silently skipped). Best-effort. */
+  notifyMatchFinalized(
+    matchId: string,
+    groupId: string,
+    roster: MatchRosterEntry[],
+    score: { team1Goals: number; team2Goals: number },
+  ): Promise<void>;
+  /** Sends a `match_disputed` notification to the group's owner/admins. Best-effort. */
+  notifyMatchDisputed(matchId: string, groupId: string, reasons: DisputeReason[]): Promise<void>;
 }
 
 const SUB_ATTRIBUTE_KEYS = new Set<string>([
@@ -425,6 +449,9 @@ export function createSupabaseFinalizeRepo(admin: SupabaseClient<Database>): Fin
 
     async recomputeCard(playerId, now, formMatches) {
       await recomputePlayer(ratingRepo, playerId, now, formMatches, "match");
+      // Best-effort, same as awardMatchBadges/notifyMatchFinalized below: gold_card/scout_10 are a
+      // nice-to-have layered on top of the recompute that already durably succeeded above.
+      await awardCardBadgesAndNotify(admin, playerId).catch(() => undefined);
     },
 
     async confirmTournamentMatchResult(tournamentMatchId, result) {
@@ -440,7 +467,62 @@ export function createSupabaseFinalizeRepo(admin: SupabaseClient<Database>): Fin
 
     async advanceTournament(tournamentId, rng) {
       const tournamentRepo = createSupabaseTournamentRepo(admin);
-      await afterTournamentMatchCompleted(tournamentRepo, tournamentId, rng);
+      const result = await afterTournamentMatchCompleted(tournamentRepo, tournamentId, rng);
+      // Best-effort (champion badge + tournament_match_ready notifications): must not turn a
+      // genuine advancement failure above into a false one, nor vice versa -- see
+      // tournament-advance.ts's doc comment.
+      await handleTournamentAdvance(tournamentId, result, rng, admin).catch(() => undefined);
+    },
+
+    async awardMatchBadges(matchId, groupId, playerIds, settings) {
+      if (playerIds.length === 0) return;
+      const badgesRepo = createSupabaseBadgesRepo(admin);
+      const awards = await awardMatchBadgesForRoster(badgesRepo, playerIds, settings.badges_enabled);
+      if (awards.length === 0) return;
+
+      const userIdByPlayer = await loadUserIdsByPlayer(admin, awards.map((a) => a.playerId));
+      const notificationsRepo = createSupabaseNotificationsRepo(admin);
+      for (const award of awards) {
+        const userId = userIdByPlayer.get(award.playerId);
+        if (!userId) continue; // guest: no auth account to notify
+        await notify(notificationsRepo, {
+          userIds: [userId],
+          groupId,
+          kind: "badge_awarded",
+          payload: badgeAwardedPayload({ badgeCode: award.code, url: `/g/${groupId}/jugadores/${award.playerId}` }),
+        });
+      }
+    },
+
+    async notifyMatchFinalized(matchId, groupId, roster, score) {
+      const userIdByPlayer = await loadUserIdsByPlayer(admin, roster.map((r) => r.playerId));
+      const userIds = [...new Set(roster.map((r) => userIdByPlayer.get(r.playerId)).filter((id): id is string => id !== undefined))];
+      if (userIds.length === 0) return;
+      const notificationsRepo = createSupabaseNotificationsRepo(admin);
+      await notify(notificationsRepo, {
+        userIds,
+        groupId,
+        kind: "match_finalized",
+        payload: matchFinalizedPayload({ team1Goals: score.team1Goals, team2Goals: score.team2Goals, url: `/g/${groupId}/partidos/${matchId}` }),
+      });
+    },
+
+    async notifyMatchDisputed(matchId, groupId, reasons) {
+      const { data, error } = await admin
+        .from("group_members")
+        .select("user_id")
+        .eq("group_id", groupId)
+        .in("role", ["owner", "admin"]);
+      if (error) throw error;
+      const userIds = (data ?? []).map((r) => r.user_id);
+      if (userIds.length === 0) return;
+      const notificationsRepo = createSupabaseNotificationsRepo(admin);
+      await notify(notificationsRepo, {
+        userIds,
+        groupId,
+        kind: "match_disputed",
+        payload: matchDisputedPayload({ reasonCount: reasons.length, url: `/g/${groupId}/partidos/${matchId}` }),
+      });
     },
   };
 }

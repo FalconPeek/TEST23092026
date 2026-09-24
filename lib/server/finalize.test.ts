@@ -42,6 +42,14 @@ class FakeFinalizeRepo implements FinalizeRepo {
   /** Set to make confirmTournamentMatchResult reject, e.g. to simulate PICADO_KO_DRAW. */
   tournamentConfirmError: string | null = null;
 
+  awardMatchBadgesCalls: { matchId: string; groupId: string; playerIds: string[] }[] = [];
+  notifyFinalizedCalls: { matchId: string; groupId: string; roster: MatchRosterEntry[]; score: { team1Goals: number; team2Goals: number } }[] = [];
+  notifyDisputedCalls: { matchId: string; groupId: string; reasons: DisputeReason[] }[] = [];
+  /** Set to make one of the 3 best-effort hooks above reject, asserting it never fails finalizeMatch. */
+  awardMatchBadgesError: string | null = null;
+  notifyFinalizedError: string | null = null;
+  notifyDisputedError: string | null = null;
+
   async loadPendingFinalizeMatchIds(now: Date) {
     return [...this.graphs.values()]
       .filter((g) => g.status === "pending_finalize" && (!g.ratingDeadline || g.ratingDeadline <= now))
@@ -108,6 +116,21 @@ class FakeFinalizeRepo implements FinalizeRepo {
 
   async advanceTournament(tournamentId: string) {
     this.advancedTournaments.push(tournamentId);
+  }
+
+  async awardMatchBadges(matchId: string, groupId: string, playerIds: string[]) {
+    if (this.awardMatchBadgesError) throw new Error(this.awardMatchBadgesError);
+    this.awardMatchBadgesCalls.push({ matchId, groupId, playerIds });
+  }
+
+  async notifyMatchFinalized(matchId: string, groupId: string, roster: MatchRosterEntry[], score: { team1Goals: number; team2Goals: number }) {
+    if (this.notifyFinalizedError) throw new Error(this.notifyFinalizedError);
+    this.notifyFinalizedCalls.push({ matchId, groupId, roster, score });
+  }
+
+  async notifyMatchDisputed(matchId: string, groupId: string, reasons: DisputeReason[]) {
+    if (this.notifyDisputedError) throw new Error(this.notifyDisputedError);
+    this.notifyDisputedCalls.push({ matchId, groupId, reasons });
   }
 }
 
@@ -210,6 +233,24 @@ describe("finalizeMatch", () => {
     const p1Recompute = repo.recomputeCalls.find((c) => c.playerId === "p1")!;
     expect(p1Recompute.formMatches[0].ratings).toHaveLength(3);
     expect(p1Recompute.formMatches[0].playedAt).toEqual(PLAYED_AT);
+
+    // Badges evaluated for team players only (spectator excluded), notification sent to the roster.
+    expect(repo.awardMatchBadgesCalls).toEqual([{ matchId: "m1", groupId: GROUP_ID, playerIds: ["p1", "p2", "p3", "p4"] }]);
+    expect(repo.notifyFinalizedCalls).toHaveLength(1);
+    expect(repo.notifyFinalizedCalls[0]).toMatchObject({ matchId: "m1", groupId: GROUP_ID, score: { team1Goals: 2, team2Goals: 0 } });
+    expect(repo.notifyDisputedCalls).toEqual([]);
+  });
+
+  it("a badge-award or finalized-notification failure never fails finalization (best-effort)", async () => {
+    const repo = new FakeFinalizeRepo();
+    repo.graphs.set("m1", happyPathGraph());
+    repo.awardMatchBadgesError = "boom";
+    repo.notifyFinalizedError = "boom";
+
+    const outcome = await finalizeMatch(repo, "m1", NOW);
+
+    expect(outcome).toEqual({ matchId: "m1", status: "finalized" });
+    expect(repo.finalizedMatchIds).toEqual([{ matchId: "m1", finalizedAt: NOW }]);
   });
 
   it("treats a draw as a tie for OpenSkill and leaves winnerSide null", async () => {
@@ -265,6 +306,26 @@ describe("finalizeMatch", () => {
     expect(repo.recomputeCalls).toEqual([]);
     expect(repo.auditLogs).toHaveLength(1);
     expect(repo.auditLogs[0].action).toBe("auto_dispute");
+    expect(repo.notifyDisputedCalls).toHaveLength(1);
+    expect(repo.notifyDisputedCalls[0]).toMatchObject({ matchId: "m1", groupId: GROUP_ID });
+    expect(repo.notifyDisputedCalls[0]!.reasons).toEqual(outcome.status === "disputed" ? outcome.reasons : []);
+    expect(repo.awardMatchBadgesCalls).toEqual([]); // never awarded on a disputed match
+    expect(repo.notifyFinalizedCalls).toEqual([]);
+  });
+
+  it("a disputed-notification failure never fails the dispute outcome (best-effort)", async () => {
+    const repo = new FakeFinalizeRepo();
+    const graph = happyPathGraph();
+    graph.scoreReports = [
+      { reporterId: "p1", team1Goals: 2, team2Goals: 0 },
+      { reporterId: "p3", team1Goals: 1, team2Goals: 1 },
+    ];
+    repo.graphs.set("m1", graph);
+    repo.notifyDisputedError = "boom";
+
+    const outcome = await finalizeMatch(repo, "m1", NOW);
+    expect(outcome.status).toBe("disputed");
+    expect(repo.disputedMatchIds).toEqual(["m1"]);
   });
 
   it("trusts an admin's resolve_dispute override instead of re-running Rule A", async () => {

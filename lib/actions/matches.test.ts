@@ -79,6 +79,18 @@ describe("createMatch", () => {
     expect(mockRevalidatePath).toHaveBeenCalledWith(`/g/${GROUP_ID}/partidos`);
   });
 
+  it("still succeeds when the best-effort match_scheduled notification can't be sent (no SUPABASE_SECRET_KEY here)", async () => {
+    // notifyMatchScheduledBestEffort (lib/server/match-notify.ts) makes its own admin client and
+    // swallows every error internally -- this test's env has no SUPABASE_SECRET_KEY, so that call
+    // fails every time, which is exactly the "must never fail the action" case being asserted.
+    mockGetUserId.mockResolvedValue(USER_ID);
+    mockRpc.mockResolvedValue({ data: MATCH_ID, error: null });
+
+    const result = await createMatch({ groupId: GROUP_ID, scheduledAt: new Date().toISOString(), teamSize: 5 });
+
+    expect(result).toEqual({ ok: true, data: { matchId: MATCH_ID } });
+  });
+
   it("maps a forbidden RPC error", async () => {
     mockGetUserId.mockResolvedValue(USER_ID);
     mockRpc.mockResolvedValue({
@@ -157,6 +169,15 @@ describe("startReporting", () => {
     const result = await startReporting({ groupId: GROUP_ID, matchId: MATCH_ID });
 
     expect(mockRpc).toHaveBeenCalledWith("start_reporting", { p_match_id: MATCH_ID, p_played_at: undefined });
+    expect(result).toEqual({ ok: true, data: undefined });
+  });
+
+  it("still succeeds when the best-effort report_pending/rating_pending notifications can't be sent", async () => {
+    mockGetUserId.mockResolvedValue(USER_ID);
+    mockRpc.mockResolvedValue({ data: null, error: null });
+
+    const result = await startReporting({ groupId: GROUP_ID, matchId: MATCH_ID });
+
     expect(result).toEqual({ ok: true, data: undefined });
   });
 });

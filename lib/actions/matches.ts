@@ -8,6 +8,7 @@ import { ok, fail, type ActionResult } from "@/lib/actions/result";
 import { mapDbError } from "@/lib/actions/errors";
 import { ALL_ATTRIBUTES } from "@/lib/rating/attributes";
 import { POSITIONS, type PositionCode } from "@/lib/rating/positions";
+import { notifyMatchScheduledBestEffort, notifyReportingStartedBestEffort } from "@/lib/server/match-notify";
 import type { Json } from "@/lib/supabase/database.types";
 
 const uuid = z.uuid();
@@ -56,6 +57,8 @@ export async function createMatch(input: {
     p_venue: parsed.data.venue,
   });
   if (error || !data) return fail(mapDbError(error));
+
+  await notifyMatchScheduledBestEffort(data, parsed.data.groupId, new Date(parsed.data.scheduledAt));
 
   revalidatePath(`/g/${parsed.data.groupId}/partidos`);
   return ok({ matchId: data });
@@ -156,6 +159,8 @@ export async function startReporting(input: {
     p_played_at: parsed.data.playedAt,
   });
   if (error) return fail(mapDbError(error));
+
+  await notifyReportingStartedBestEffort(parsed.data.matchId, parsed.data.groupId);
 
   revalidatePath(`/g/${parsed.data.groupId}/partidos`);
   revalidatePath(`/g/${parsed.data.groupId}/partidos/${parsed.data.matchId}`);
