@@ -351,6 +351,18 @@ export default async function MatchDetailPage({
           stats={matchResultStats}
         />
       )}
+
+      {match.status === "finalized" && matchResultRow && admin && (
+        <AmendStatsForm
+          groupId={groupId}
+          matchId={matchId}
+          team1Name={team1?.name ?? es.matches.team1Default}
+          team2Name={team2?.name ?? es.matches.team2Default}
+          players={amendPlayers}
+          initialStats={amendInitialStats}
+          score={{ team1Goals: matchResultRow.team1_goals, team2Goals: matchResultRow.team2_goals }}
+        />
+      )}
     </div>
   );
 }
