@@ -9,17 +9,15 @@
 - FATHER side committed: `lib/settings` (zod), M1 schema, M2 schema (matches core, scouting votes, derived rating tables, every member has a player row; 14 pgTAP files / 172 assertions), `lib/rating` + `lib/reconcile` (reliability = 2/(1+(RMSE/σ)²), neutral below bias_min_votes), `lib/brackets` (71 tests), vitest global RTL cleanup, `/dev/*` public in development.
 - `.orchestra/.father-seen` = T-001..T-004. NOT auto-appended: `echo T-XXX >> .orchestra/.father-seen` after handling each result.
 
-## Status (updated 2026-09-23 night)
-- Committed: M1–M5 schema (402 pgTAP), finalizer + cron, tournament server layer, badges/notifications/push server layer, realtime publication. Worker verified+committed T-001..T-014, T-021, T-022.
-- Worker chain next: T-015 → T-016..T-019 (M4 UI) → T-020 (polish incl. quick-vote bias fix) → T-023..T-026 (M5 UI).
-- Background watcher was killed by low-memory reaper; do NOT restart unless the user asks. Verifier SendMessages FATHER after each verdict; on a verdict: read report → commit Worker files (PASS) or write a fix task + re-point dependents (FAIL) → echo T-XXX >> .orchestra/.father-seen.
-- Worker/Verifier reachable via SendMessage ("Worker", "Verifier"). Usage limits have hit twice: on reset, resume subagents via SendMessage to their id and nudge Worker/Verifier.
-
-## Background subagent (in flight, uncommitted)
-- ui-builder: PWA (Serwist, Turbopack), app/manifest.ts, icons, app/sw.ts push+notificationclick, lib/push/client.ts, app/api/og/card/[playerId]/route.tsx (+ generateMetadata on player page). T-023 needs the OG route, T-026 needs lib/push/client.ts.
+## Status (updated 2026-09-24)
+- Sonnet weekly limit hit (resets Sep 25 3pm ART): subagents unavailable; FATHER (Opus) did the PWA/OG finish, M6 security fixes, e2e, seeder, Rule A change, GK quick mode directly. Worker still progressing (T-017 in progress at time of writing).
+- Committed through 4ae2364: M1–M5 schema + server layers, PWA (Serwist/Turbopack, /sw.js), /api/og/card, privilege revoke (c714695), redirect guard (1dabfe0), e2e (e2e/*.spec.ts, 11 green), seed:demo, amend_match_stats + unattributed goals (801e6d4, user decision), GK quick mode (13febb1). pgTAP 421, unit ~680, dbint 89.
+- Worker chain: T-017 → T-018 → T-019 → T-027 → T-020 (big polish incl. quick-vote bias, GK quick UI, a11y, Spanish zod errors) → T-023..T-026 (M5 UI).
+- No background watcher (low-memory reaper); Verifier SendMessages FATHER after each verdict. On PASS: commit only that task's declared files (check git diff of shared files like messages/es.ts), echo T-XXX >> .orchestra/.father-seen, update BOARD.
+- db lint: persist_bracket temp-table error is a false positive (runtime temp tables); unused-variable warnings only.
 
 ## Next (FATHER)
-- Review/commit the PWA agent. Then M6: security review (RLS/RPC/grants audit, Supabase advisors), Playwright e2e happy paths (magic link via Mailpit), seed data, full lint/typecheck/test/test:db/test:dbint/build; then ask the user about prod Supabase + Vercel.
+- Tournament e2e (generate → confirm → champion) once T-019 lands. Final full verification (lint, typecheck, test, test:db, test:dbint, build, e2e). Then ask the user about prod (cloud Supabase + Vercel, OAuth creds, CRON via Vercel cron or pg_net).
 
 ## Gotchas
 - Bash heredocs can drop backslashes → use Write for code with backslashes. The Write tool turns backslash-u escapes in markdown into literal chars — spell them as U+00A0.
