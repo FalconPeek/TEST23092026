@@ -656,6 +656,10 @@ export const es = {
     invalid: "Esta invitación no es válida o ya venció.",
     goHome: "Ir a mis grupos",
   },
+  squads: {
+    ratingShort: "MED",
+    chemistryShort: "QUI",
+  },
 } as const;
 
 export type Messages = typeof es;
