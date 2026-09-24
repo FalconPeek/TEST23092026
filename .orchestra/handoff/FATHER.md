@@ -9,15 +9,14 @@
 - FATHER side committed: `lib/settings` (zod), M1 schema, M2 schema (matches core, scouting votes, derived rating tables, every member has a player row; 14 pgTAP files / 172 assertions), `lib/rating` + `lib/reconcile` (reliability = 2/(1+(RMSE/σ)²), neutral below bias_min_votes), `lib/brackets` (71 tests), vitest global RTL cleanup, `/dev/*` public in development.
 - `.orchestra/.father-seen` = T-001..T-004. NOT auto-appended: `echo T-XXX >> .orchestra/.father-seen` after handling each result.
 
-## Status (updated 2026-09-24)
-- Sonnet weekly limit hit (resets Sep 25 3pm ART): subagents unavailable; FATHER (Opus) did the PWA/OG finish, M6 security fixes, e2e, seeder, Rule A change, GK quick mode directly. Worker still progressing (T-017 in progress at time of writing).
-- Committed through 4ae2364: M1–M5 schema + server layers, PWA (Serwist/Turbopack, /sw.js), /api/og/card, privilege revoke (c714695), redirect guard (1dabfe0), e2e (e2e/*.spec.ts, 11 green), seed:demo, amend_match_stats + unattributed goals (801e6d4, user decision), GK quick mode (13febb1). pgTAP 421, unit ~680, dbint 89.
-- Worker chain: T-017 → T-018 → T-019 → T-027 → T-020 (big polish incl. quick-vote bias, GK quick UI, a11y, Spanish zod errors) → T-023..T-026 (M5 UI).
-- No background watcher (low-memory reaper); Verifier SendMessages FATHER after each verdict. On PASS: commit only that task's declared files (check git diff of shared files like messages/es.ts), echo T-XXX >> .orchestra/.father-seen, update BOARD.
-- db lint: persist_bracket temp-table error is a false positive (runtime temp tables); unused-variable warnings only.
+## Status (updated 2026-09-24 night)
+- User asked for M7 Plantillas (FUT-style squads + clubs with crests); design in PLAN.md M7. FATHER backend DONE: lib/squads engine (08b3f71), clubs/squads schema + storage bucket club-crests (2443eb7), actions (e4d34bf), view/context + /api/og/squad (3197e1c), tournament entries club_id (f2adf9d), seeder with clubs + published squad.
+- Worker chain: T-020 (in progress) → T-023..T-026 (M5 UI) → T-029..T-032 (M7 UI).
+- Verifier SendMessages after each verdict; commit only the task's files. The user sometimes commits the tree themselves (e.g. 53109e0 "asd"): then commit only what's left.
+- No background watcher. Sonnet subagents limited until Sep 25 3pm ART; do FATHER work directly.
 
 ## Next (FATHER)
-- Tournament e2e (generate → confirm → champion) once T-019 lands. Final full verification (lint, typecheck, test, test:db, test:dbint, build, e2e). Then ask the user about prod (cloud Supabase + Vercel, OAuth creds, CRON via Vercel cron or pg_net).
+- e2e for tournaments/squads once their UI lands; final full verification (lint, typecheck, test, test:db, test:dbint, build, e2e); then ask the user about prod (cloud Supabase + Vercel, OAuth creds, cron).
 
 ## Gotchas
 - Bash heredocs can drop backslashes → use Write for code with backslashes. The Write tool turns backslash-u escapes in markdown into literal chars — spell them as U+00A0.
