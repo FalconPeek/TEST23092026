@@ -17,10 +17,10 @@ Current milestone: **M1 UI → M2/M3 UI** (M0 done; dev on local Supabase stack)
 | T-011 | player profile: card, radar, attributes, stats | M2 | verified | deps T-010 |
 | T-012 | scouting vote page | M2 | verified | deps T-011 |
 | T-013 | matches list/create/lineup + auto-balance | M3 | verified | deps T-012 |
-| T-014 | match detail: report score/stats, rate players | M3 | rejected (fix: T-021) | deps T-013 |
+| T-014 | match detail: report score/stats, rate players | M3 | verified (via T-021, T-022) | deps T-013 |
 | T-015 | disputes, finalize button, final result | M3 | todo | deps T-022; lib/actions/finalize.ts ready |
-| T-021 | fix T-014: ≥44px tap targets (stats form, standout search) | M3 | rejected (fix: T-022) | deps T-013; fixes rejected T-014 |
-| T-022 | fix T-021: standout chips + saves toggle ≥44px | M3 | todo | deps T-013; fixes rejected T-021 |
+| T-021 | fix T-014: ≥44px tap targets (stats form, standout search) | M3 | verified (via T-022) | deps T-013; fixes rejected T-014 |
+| T-022 | fix T-021: standout chips + saves toggle ≥44px | M3 | verified | deps T-013; fixes rejected T-021 |
 | T-016 | tournaments: M4 error strings, list, create form | M4 | todo | deps T-015 |
 | T-017 | tournament hub: status, registrations, entries, generate | M4 | todo | deps T-016 |
 | T-018 | bracket view + match result actions + realtime | M4 | todo | deps T-017 |
