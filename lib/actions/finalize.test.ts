@@ -110,7 +110,7 @@ describe("finalizeMatchNow", () => {
     const result = await finalizeMatchNow({ matchId: MATCH_ID });
     expect(result).toEqual({
       ok: true,
-      data: { outcome: { matchId: MATCH_ID, status: "finalized", tournamentSyncError: es.common.error } },
+      data: { outcome: { matchId: MATCH_ID, status: "finalized", tournamentSyncError: es.errors.koDrawNeedsDecision } },
     });
   });
 

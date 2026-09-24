@@ -53,5 +53,17 @@ export function mapDbError(error: { message?: string } | null | undefined): stri
     return es.errors.deadlinePassed;
   }
 
+  if (message.startsWith("PICADO_ALREADY_GENERATED:")) {
+    return es.errors.tournamentAlreadyGenerated;
+  }
+
+  if (message.startsWith("PICADO_KO_DRAW:")) {
+    return es.errors.koDrawNeedsDecision;
+  }
+
+  if (message.startsWith("PICADO_NOT_EDITABLE:")) {
+    return es.errors.resultNotEditable;
+  }
+
   return es.common.error;
 }

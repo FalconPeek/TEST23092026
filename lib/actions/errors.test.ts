@@ -107,4 +107,22 @@ describe("mapDbError", () => {
       es.errors.deadlinePassed,
     );
   });
+
+  it("maps PICADO_ALREADY_GENERATED to tournamentAlreadyGenerated", () => {
+    expect(mapDbError({ message: "PICADO_ALREADY_GENERATED: this tournament already has a bracket" })).toBe(
+      es.errors.tournamentAlreadyGenerated,
+    );
+  });
+
+  it("maps PICADO_KO_DRAW to koDrawNeedsDecision", () => {
+    expect(
+      mapDbError({ message: "PICADO_KO_DRAW: a tied knockout match requires penalties or a manual/walkover decision" }),
+    ).toBe(es.errors.koDrawNeedsDecision);
+  });
+
+  it("maps PICADO_NOT_EDITABLE to resultNotEditable", () => {
+    expect(mapDbError({ message: "PICADO_NOT_EDITABLE: this match result can no longer be edited" })).toBe(
+      es.errors.resultNotEditable,
+    );
+  });
 });

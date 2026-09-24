@@ -242,9 +242,9 @@ describe("generateTournamentBracket", () => {
 
     const result = await generateTournamentBracket({ tournamentId: TOURNAMENT_ID, groupId: GROUP_ID });
 
-    // Not one of the prefixes mapDbError special-cases (see the note in mapCaughtError) -> falls
-    // back to the generic error, but crucially never leaks the raw message or throws.
-    expect(result).toEqual({ ok: false, error: es.common.error });
+    // mapCaughtError routes this through the shared mapDbError, which maps this specific M4
+    // code -- never leaks the raw message or throws.
+    expect(result).toEqual({ ok: false, error: es.errors.tournamentAlreadyGenerated });
   });
 
   it("maps a plain engine error (e.g. fewer than 2 entries) to the generic error", async () => {
@@ -362,7 +362,7 @@ describe("confirmTournamentResult / editTournamentResult", () => {
       score2: 1,
     });
 
-    expect(result).toEqual({ ok: false, error: es.common.error });
+    expect(result).toEqual({ ok: false, error: es.errors.koDrawNeedsDecision });
     expect(mockAfterTournamentMatchCompleted).not.toHaveBeenCalled();
   });
 
