@@ -9,19 +9,17 @@
 - FATHER side committed: `lib/settings` (zod), M1 schema, M2 schema (matches core, scouting votes, derived rating tables, every member has a player row; 14 pgTAP files / 172 assertions), `lib/rating` + `lib/reconcile` (reliability = 2/(1+(RMSE/σ)²), neutral below bias_min_votes), `lib/brackets` (71 tests), vitest global RTL cleanup, `/dev/*` public in development.
 - `.orchestra/.father-seen` = T-001..T-004. NOT auto-appended: `echo T-XXX >> .orchestra/.father-seen` after handling each result.
 
-## Status (resumed 2026-09-23 ~13:00)
-- PAUSE removed. db:reset + test:db (250) + lint/typecheck/test (311) green. T-005 verified + committed (7b67270). Worker on T-006. T-010..T-015 written + committed (c457477).
-- Worker/Verifier are reachable via SendMessage (ListAgents: "Worker", "Verifier").
-- Watcher: `bash .orchestra/wait-for-task.sh verified,rejected --seen .orchestra/.father-seen --timeout 3000` (background); on hit: read verify report → commit task files (PASS) or write fix task (FAIL) → echo T-XXX >> .father-seen → re-arm.
+## Status (updated 2026-09-23 night)
+- Committed: M1–M5 schema (402 pgTAP), finalizer + cron, tournament server layer, badges/notifications/push server layer, realtime publication. Worker verified+committed T-001..T-014, T-021, T-022.
+- Worker chain next: T-015 → T-016..T-019 (M4 UI) → T-020 (polish incl. quick-vote bias fix) → T-023..T-026 (M5 UI).
+- Background watcher was killed by low-memory reaper; do NOT restart unless the user asks. Verifier SendMessages FATHER after each verdict; on a verdict: read report → commit Worker files (PASS) or write a fix task + re-point dependents (FAIL) → echo T-XXX >> .orchestra/.father-seen.
+- Worker/Verifier reachable via SendMessage ("Worker", "Verifier"). Usage limits have hit twice: on reset, resume subagents via SendMessage to their id and nudge Worker/Verifier.
 
-## Background subagents (in flight, uncommitted output)
-1. rating-engine: match finalizer — lib/server/finalize-repo.ts, finalize.ts (+tests, finalize.dbint.test.ts), lib/actions/finalize.ts (finalizeMatchNow), app/api/cron/finalize/route.ts, maybe migration *finalizer_grants* + pgTAP 019. T-015 depends on lib/actions/finalize.ts.
-2. db-architect: M4 tournament schema (tables, RLS, RPCs persist_bracket/confirm_match_result/edit/append_swiss_round, pgTAP 020+), db:types.
-If a restart kills them: check git status for their files, relaunch with "continue from existing files", then review + test + commit.
+## Background subagent (in flight, uncommitted)
+- ui-builder: PWA (Serwist, Turbopack), app/manifest.ts, icons, app/sw.ts push+notificationclick, lib/push/client.ts, app/api/og/card/[playerId]/route.tsx (+ generateMetadata on player page). T-023 needs the OG route, T-026 needs lib/push/client.ts.
 
-## Next
-- Review/commit both subagent outputs. Then: lib/server/tournaments.ts (TS generate via lib/brackets → persist_bracket; hook finalizer → confirm_match_result for tournament matches), then M4 UI Worker tasks (tournament create/registration/entries, bracket view, tables/fixtures, Realtime).
-- Playwright e2e for magic-link login; M5 per PLAN.
+## Next (FATHER)
+- Review/commit the PWA agent. Then M6: security review (RLS/RPC/grants audit, Supabase advisors), Playwright e2e happy paths (magic link via Mailpit), seed data, full lint/typecheck/test/test:db/test:dbint/build; then ask the user about prod Supabase + Vercel.
 
 ## Gotchas
 - Bash heredocs can drop backslashes → use Write for code with backslashes. The Write tool turns backslash-u escapes in markdown into literal chars — spell them as U+00A0.
