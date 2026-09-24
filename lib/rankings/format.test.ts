@@ -35,8 +35,8 @@ describe("parseMetric", () => {
 
 describe("formatMetricValue", () => {
   it("formats avg_rating with one decimal", () => {
-    expect(formatMetricValue("avg_rating", 7.456)).toBe("7.5");
-    expect(formatMetricValue("avg_rating", 7)).toBe("7.0");
+    expect(formatMetricValue("avg_rating", 7.456)).toBe("7,5");
+    expect(formatMetricValue("avg_rating", 7)).toBe("7,0");
   });
 
   it("formats every other metric as a rounded integer", () => {

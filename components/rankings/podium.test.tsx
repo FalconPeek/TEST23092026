@@ -67,6 +67,6 @@ describe("Podium", () => {
     const { positions } = splitPodium(rows);
     render(<Podium groupId="g1" metric="avg_rating" positions={positions} myPlayerId={null} />);
 
-    expect(screen.getByText("8.0")).toBeInTheDocument();
+    expect(screen.getByText("8,0")).toBeInTheDocument();
   });
 });

@@ -1,6 +1,7 @@
 // Pure helpers for the rankings page: validating the `?metric=` query param before it ever
 // reaches get_group_leaderboard, formatting a metric's value, and splitting a leaderboard into
 // its podium (top 3 *positions*, which can hold more than 3 players on a tie) and the rest. No I/O.
+import { formatDecimal } from "@/lib/format";
 
 export const METRICS = [
   "ovr",
@@ -24,7 +25,7 @@ export function parseMetric(value: string | string[] | undefined | null): Metric
 
 /** avg_rating shows one decimal; every other metric is a whole number. */
 export function formatMetricValue(metric: Metric, value: number): string {
-  return metric === "avg_rating" ? value.toFixed(1) : String(Math.round(value));
+  return metric === "avg_rating" ? formatDecimal(value, 1) : String(Math.round(value));
 }
 
 export interface LeaderboardRow {
