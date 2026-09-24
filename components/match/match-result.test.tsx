@@ -77,4 +77,32 @@ describe("MatchResult", () => {
 
     expect(screen.getByLabelText(es.match.cleanSheet)).toBeInTheDocument();
   });
+
+  it("shows unattributed goals for a side when the score doesn't fully add up", () => {
+    render(
+      <MatchResult
+        groupId="g1"
+        team1Name="Blancos"
+        team2Name="Negros"
+        result={{ team1Goals: 4, team2Goals: 0, pens1: null, pens2: null }}
+        stats={STATS}
+      />,
+    );
+
+    expect(screen.getByText(es.match.unattributed(2))).toBeInTheDocument();
+  });
+
+  it("shows no unattributed-goals line when every goal is accounted for", () => {
+    render(
+      <MatchResult
+        groupId="g1"
+        team1Name="Blancos"
+        team2Name="Negros"
+        result={{ team1Goals: 2, team2Goals: 0, pens1: null, pens2: null }}
+        stats={STATS}
+      />,
+    );
+
+    expect(screen.queryByText(/gol(es)? sin autor/)).not.toBeInTheDocument();
+  });
 });

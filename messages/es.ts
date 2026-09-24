@@ -435,6 +435,12 @@ export const es = {
     cleanSheet: "Valla invicta",
     medianRating: "Puntaje",
     waitingRatings: (date: Date | string) => `Esperando que cierre la ventana de puntajes (${formatDate(date)})`,
+    unattributed: (n: number) => (n === 1 ? "1 gol sin autor" : `${n} goles sin autor`),
+    amendTitle: "Asignar goles",
+    amendHelp: "Asigná los goles que nadie cargó, o corregí asistencias y atajadas. El resultado no cambia.",
+    amendSave: "Guardar cambios",
+    amended: "Estadísticas actualizadas",
+    amendOverScore: (team: string) => `${team} no puede tener más goles que su resultado`,
   },
   matches: {
     created: "Partido creado",

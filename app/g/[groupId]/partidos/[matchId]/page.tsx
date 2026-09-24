@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { AmendStatsForm, type AmendFormPlayer } from "@/components/match/amend-stats-form";
 import { FinalizeButton } from "@/components/match/finalize-button";
 import { MatchResult, type MatchResultPlayerStat } from "@/components/match/match-result";
 import { RatingForm, type RatingFormPlayer, type RatingPrefill } from "@/components/match/rating-form";
@@ -158,6 +159,20 @@ export default async function MatchDetailPage({
       },
     ];
   });
+
+  const amendPlayers: AmendFormPlayer[] = [...team1Players, ...team2Players].map((p) => ({
+    id: p.player_id,
+    displayName: p.players.display_name,
+    avatarUrl: p.players.avatar_url,
+    side: p.team_id === team1?.id ? (1 as const) : (2 as const),
+  }));
+  const amendInitialStats: Record<string, { goals: number; assists: number; ownGoals: number; saves: number }> =
+    Object.fromEntries(
+      (matchStatsRows ?? []).map((s) => [
+        s.player_id,
+        { goals: s.goals, assists: s.assists, ownGoals: s.own_goals, saves: s.saves },
+      ]),
+    );
 
   function PlayerLink({ playerId, displayName, avatarUrl }: { playerId: string; displayName: string; avatarUrl: string | null }) {
     return (

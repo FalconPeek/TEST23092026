@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { es } from "@/messages/es";
+import { unattributedGoals, type AmendStatRow } from "@/lib/match/amend";
 
 export type MatchResultScore = {
   team1Goals: number;
@@ -51,6 +52,19 @@ export function MatchResult({
   const pensLabel =
     result.pens1 !== null && result.pens2 !== null ? ` (${result.pens1}-${result.pens2} pen.)` : "";
 
+  const amendRows: AmendStatRow[] = stats.map((s) => ({
+    playerId: s.playerId,
+    side: s.side,
+    goals: s.goals,
+    assists: s.assists,
+    ownGoals: s.ownGoals,
+    saves: s.saves,
+  }));
+  const unattributed = unattributedGoals(
+    { team1Goals: result.team1Goals, team2Goals: result.team2Goals },
+    amendRows,
+  );
+
   return (
     <div className="flex flex-col gap-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
       <div className="flex flex-col items-center gap-2 text-center">
@@ -74,9 +88,15 @@ export function MatchResult({
       {([1, 2] as const).map((side) => {
         const sideStats = stats.filter((s) => s.side === side);
         if (sideStats.length === 0) return null;
+        const sideUnattributed = side === 1 ? unattributed.side1 : unattributed.side2;
         return (
           <div key={side} className="flex flex-col gap-1.5">
-            <h4 className="text-xs font-medium text-muted-foreground">{side === 1 ? team1Name : team2Name}</h4>
+            <div className="flex items-center justify-between gap-2">
+              <h4 className="text-xs font-medium text-muted-foreground">{side === 1 ? team1Name : team2Name}</h4>
+              {sideUnattributed > 0 && (
+                <span className="text-xs text-muted-foreground">{es.match.unattributed(sideUnattributed)}</span>
+              )}
+            </div>
             <Table>
               <TableHeader>
                 <TableRow>
