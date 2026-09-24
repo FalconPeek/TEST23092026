@@ -201,6 +201,71 @@ export const es = {
     editProfile: "Editar perfil",
     positionOvr: "Media por posición",
     noStats: "Todavía no jugó ningún partido.",
+    share: "Compartir carta",
+    downloadCard: "Descargar imagen",
+    shareText: (name: string) => `Mirá la carta de ${name} en Picado`,
+    linkCopied: "Link copiado",
+  },
+  badges: {
+    title: "Insignias",
+    count: (n: number) => `×${n}`,
+    none: "Todavía no ganó insignias.",
+    first_match: { name: "Primer partido", description: "Jugaste tu primer partido." },
+    matches_10: { name: "Habitué", description: "Jugaste 10 partidos." },
+    matches_50: { name: "Veterano", description: "Jugaste 50 partidos." },
+    first_goal: { name: "Primer gol", description: "Metiste tu primer gol." },
+    hat_trick: { name: "Hat-trick", description: "Metiste 3 o más goles en un partido." },
+    goals_25: { name: "Goleador", description: "Metiste 25 goles." },
+    assist_king: { name: "Rey del pase", description: "Diste 3 o más asistencias en un partido." },
+    mvp: { name: "Figura", description: "Fuiste la figura del partido." },
+    mvp_5: { name: "Figura recurrente", description: "Fuiste figura del partido 5 veces." },
+    clean_sheet: { name: "Valla invicta", description: "Tu equipo no recibió goles." },
+    clean_sheets_10: { name: "Muralla", description: "Tuviste 10 vallas invictas." },
+    streak_3_wins: { name: "Racha ganadora", description: "Ganaste 3 partidos seguidos." },
+    tournament_champion: { name: "Campeón", description: "Ganaste un torneo." },
+    scout_10: { name: "Ojeador", description: "Votaste a 10 compañeros distintos." },
+    gold_card: { name: "Carta dorada", description: "Tu carta llegó a nivel oro." },
+  },
+  notifications: {
+    match_scheduled: (p: { groupName: string; scheduledAt: string }) => ({
+      title: "Partido programado",
+      body: `${p.groupName} tiene un partido nuevo para el ${p.scheduledAt}.`,
+    }),
+    report_pending: () => ({
+      title: "Cargá el resultado",
+      body: "Terminó el partido: cargá el resultado y las estadísticas.",
+    }),
+    rating_pending: () => ({
+      title: "Votá el partido",
+      body: "Calificá a tus compañeros y rivales de este partido.",
+    }),
+    match_finalized: (p: { team1Goals: number; team2Goals: number }) => ({
+      title: "Partido finalizado",
+      body: `Resultado final: ${p.team1Goals} - ${p.team2Goals}.`,
+    }),
+    match_disputed: (p: { reasonCount: number }) => ({
+      title: "Partido en disputa",
+      body:
+        p.reasonCount === 1
+          ? "Hay un problema con los datos cargados."
+          : `Hay ${p.reasonCount} problemas con los datos cargados.`,
+    }),
+    tournament_generated: (p: { tournamentName: string }) => ({
+      title: "Se armó el fixture",
+      body: `Ya está listo el cuadro de ${p.tournamentName}.`,
+    }),
+    tournament_match_ready: (p: { round: number }) => ({
+      title: "Nuevo partido de torneo",
+      body: `Tu partido de la ronda ${p.round} ya está listo.`,
+    }),
+    badge_awarded: (p: { badgeName: string }) => ({
+      title: "¡Nueva insignia!",
+      body: `Ganaste la insignia ${p.badgeName}.`,
+    }),
+    card_updated: () => ({
+      title: "Tu carta cambió",
+      body: "Tu carta se actualizó con los últimos votos.",
+    }),
   },
   foot: {
     left: "Zurdo",

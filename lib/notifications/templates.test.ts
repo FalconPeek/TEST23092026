@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { es } from "@/messages/es";
 import {
   badgeAwardedPayload,
   cardUpdatedPayload,
@@ -10,11 +11,6 @@ import {
   tournamentGeneratedPayload,
   tournamentMatchReadyPayload,
 } from "./templates";
-
-// messages/es.ts has no `notifications` key yet (M5 is new), so every builder below exercises the
-// FALLBACK_STRINGS path today. Once the Worker adds es.notifications these assertions on url
-// passthrough / non-empty title+body still hold; only the exact fallback wording would need
-// updating if it's ever changed.
 
 describe("notification payload templates", () => {
   it("matchScheduledPayload includes the group name, a formatted date and the url", () => {
@@ -52,9 +48,10 @@ describe("notification payload templates", () => {
     expect(payload.body).toContain("2");
   });
 
-  it("badgeAwardedPayload includes the badge code", () => {
+  it("badgeAwardedPayload includes the badge's Spanish name, never the raw code", () => {
     const payload = badgeAwardedPayload({ badgeCode: "hat_trick", url: "/g/1/jugadores/2" });
-    expect(payload.body).toContain("hat_trick");
+    expect(payload.body).toContain(es.badges.hat_trick.name);
+    expect(payload.body).not.toContain("hat_trick");
   });
 
   it("cardUpdatedPayload always returns non-empty title/body", () => {

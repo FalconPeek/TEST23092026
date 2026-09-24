@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { PlayerCard } from "@/components/card/player-card";
 import { FaceStatsRadar } from "@/components/charts/face-stats-radar";
 import { AttributeList } from "@/components/player/attribute-list";
+import { BadgeList, type EarnedBadge } from "@/components/player/badge-list";
+import { ShareCardButton } from "@/components/player/share-card-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,7 +29,7 @@ export default async function PlayerProfilePage({
 
   if (!player || player.group_id !== groupId) notFound();
 
-  const [{ data: cardRow }, { data: attributeRows }, { data: statRows }] = await Promise.all([
+  const [{ data: cardRow }, { data: attributeRows }, { data: statRows }, { data: badgeRows }] = await Promise.all([
     supabase
       .from("player_cards")
       .select("ovr, position, tier, is_provisional, face, ovr_by_position, playstyles, weak_foot, skill_moves, n_raters")
@@ -38,7 +40,13 @@ export default async function PlayerProfilePage({
       .from("match_stats")
       .select("goals, assists, clean_sheet, is_mvp, median_rating")
       .eq("player_id", playerId),
+    supabase.from("player_badges").select("badge_code, count, badges(icon, sort)").eq("player_id", playerId),
   ]);
+
+  const earnedBadges: EarnedBadge[] = (badgeRows ?? [])
+    .filter((b) => b.badges !== null)
+    .sort((a, b) => a.badges!.sort - b.badges!.sort)
+    .map((b) => ({ code: b.badge_code, icon: b.badges!.icon, count: b.count }));
 
   const cardProps = toCardProps(
     { displayName: player.display_name, avatarUrl: player.avatar_url, preferredFoot: player.preferred_foot },
@@ -97,6 +105,8 @@ export default async function PlayerProfilePage({
             </Button>
           )}
         </div>
+
+        {cardProps && <ShareCardButton playerId={playerId} playerName={player.display_name} />}
       </div>
 
       {cardProps && (
@@ -146,6 +156,11 @@ export default async function PlayerProfilePage({
             ))}
           </div>
         )}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <h2 className="text-sm font-medium text-muted-foreground">{es.badges.title}</h2>
+        <BadgeList badges={earnedBadges} />
       </div>
 
       {cardProps && (
