@@ -748,6 +748,24 @@ export const es = {
       moveDown: "Bajar",
     },
   },
+  rankings: {
+    title: "Rankings",
+    metrics: {
+      ovr: "Media",
+      impacto: "Impacto",
+      goals: "Goles",
+      assists: "Asistencias",
+      mvps: "Figuras",
+      clean_sheets: "Vallas invictas",
+      avg_rating: "Puntaje promedio",
+      matches: "Partidos",
+    },
+    impactoHelp: "Impacto mide cuánto influís en que tu equipo gane (1 a 99, relativo al grupo).",
+    avgRatingHelp: "Mínimo 3 partidos puntuados.",
+    empty: "Todavía no hay datos para este ranking.",
+    matchesPlayed: (n: number) => `${n} ${n === 1 ? "partido" : "partidos"}`,
+    you: "Vos",
+  },
   invite: {
     title: "Te invitaron a un grupo",
     joinAs: (role: "owner" | "admin" | "member" | "spectator") =>
