@@ -475,6 +475,41 @@ export const es = {
       cancelled: "Cancelado",
     },
   },
+  bracket: {
+    winners: "Llave principal",
+    losers: "Llave de perdedores",
+    final: "Final",
+    grandFinal: "Gran final",
+    reset: "Final (desempate)",
+    third: "Tercer puesto",
+    round: (r: number, total: number) => {
+      const distance = total - r;
+      if (distance === 0) return "Final";
+      if (distance === 1) return "Semifinal";
+      if (distance === 2) return "Cuartos de final";
+      if (distance === 3) return "Octavos de final";
+      return `Ronda ${r}`;
+    },
+    bye: "Libre",
+    tbd: "A definir",
+    fromGroup: (label: string, rank: number) => `${rank}º Grupo ${label}`,
+    play: "Programar partido",
+    goToMatch: "Ver partido",
+    enterResult: "Cargar resultado",
+    editResult: "Corregir resultado",
+    walkover: "Ganó por W.O.",
+    pens: "Penales",
+    champion: "¡Campeón!",
+    winner: "Ganador",
+    matchStatus: {
+      locked: "Bloqueado",
+      waiting: "Esperando",
+      ready: "Listo",
+      in_progress: "Jugando",
+      completed: "Jugado",
+      archived: "No se jugó",
+    },
+  },
   tournament: {
     openRegistration: "Abrir inscripción",
     closeAndGenerate: "Generar fixture",
