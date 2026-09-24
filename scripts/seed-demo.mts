@@ -194,7 +194,47 @@ async function main(): Promise<void> {
   }
   console.log(`scouting ballots: ${ballots}`);
 
-  // 5. Finalize the matches + recompute cards through the cron route (needs `npm run dev`).
+  // 5. Clubs (M7): the two teams of the friendlies, each with its roster and colors.
+  for (const [i, spec] of [
+    { name: "Blancos FC", short: "BFC", primary: "#f5f5f5", secondary: "#171717" },
+    { name: "Negros United", short: "NEU", primary: "#171717", secondary: "#facc15" },
+  ].entries()) {
+    const { data: clubId, error: clubError } = await owner.db.rpc("create_club", {
+      p_group_id: groupId,
+      p_name: spec.name,
+      p_short_name: spec.short,
+      p_primary_color: spec.primary,
+      p_secondary_color: spec.secondary,
+    });
+    if (clubError || !clubId) throw new Error(`create_club: ${clubError?.message}`);
+    const roster = teams[i]!.map((p, n) => ({ player_id: p.playerId, shirt_number: n + 1 }));
+    check(await owner.db.rpc("set_club_players", { p_club_id: clubId, p_players: roster }), "set_club_players");
+  }
+
+  // 6. A published dream squad by demo02, so "Plantillas" and the share image have content.
+  const byPosition = (position: string) => all.find((p) => p.position === position)!.playerId;
+  const designer = all[1]!;
+  const { data: squadId, error: squadError } = await designer.db.rpc("save_squad", {
+    p_squad_id: null as unknown as string,
+    p_group_id: groupId,
+    p_kind: "dream",
+    p_name: "Los Galácticos",
+    p_team_size: 5,
+    p_formation: "1-2-1",
+    p_slots: [
+      { slot: 0, position: "POR", player_id: byPosition("POR") },
+      { slot: 1, position: "DFC", player_id: byPosition("DFC") },
+      { slot: 2, position: "MI", player_id: byPosition("EI") },
+      { slot: 3, position: "MD", player_id: byPosition("ED") },
+      { slot: 4, position: "DC", player_id: byPosition("DC") },
+    ],
+  });
+  if (squadError || !squadId) throw new Error(`save_squad: ${squadError?.message}`);
+  check(await designer.db.rpc("set_squad_published", { p_squad_id: squadId, p_published: true }), "publish squad");
+  for (const fan of all.slice(2, 6)) check(await fan.db.rpc("like_squad", { p_squad_id: squadId, p_like: true }), "like squad");
+  console.log("clubs: 2, published squad: Los Galácticos (4 likes)");
+
+  // 7. Finalize the matches + recompute cards through the cron route (needs `npm run dev`).
   try {
     const response = await fetch(`${siteUrl}/api/cron/finalize`, {
       method: "POST",
