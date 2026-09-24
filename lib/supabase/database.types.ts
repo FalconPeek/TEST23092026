@@ -113,6 +113,83 @@ export type Database = {
         }
         Relationships: []
       }
+      club_players: {
+        Row: {
+          club_id: string
+          player_id: string
+          shirt_number: number | null
+        }
+        Insert: {
+          club_id: string
+          player_id: string
+          shirt_number?: number | null
+        }
+        Update: {
+          club_id?: string
+          player_id?: string
+          shirt_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_players_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "club_players_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clubs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          crest_path: string | null
+          group_id: string
+          id: string
+          name: string
+          primary_color: string
+          secondary_color: string
+          short_name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          crest_path?: string | null
+          group_id: string
+          id?: string
+          name: string
+          primary_color?: string
+          secondary_color?: string
+          short_name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          crest_path?: string | null
+          group_id?: string
+          id?: string
+          name?: string
+          primary_color?: string
+          secondary_color?: string
+          short_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clubs_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collusion_flags: {
         Row: {
           flagged_at: string
@@ -482,6 +559,7 @@ export type Database = {
       }
       match_teams: {
         Row: {
+          club_id: string | null
           color: string | null
           id: string
           match_id: string
@@ -489,6 +567,7 @@ export type Database = {
           side: number
         }
         Insert: {
+          club_id?: string | null
           color?: string | null
           id?: string
           match_id: string
@@ -496,6 +575,7 @@ export type Database = {
           side: number
         }
         Update: {
+          club_id?: string | null
           color?: string | null
           id?: string
           match_id?: string
@@ -503,6 +583,13 @@ export type Database = {
           side?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "match_teams_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "match_teams_match_id_fkey"
             columns: ["match_id"]
@@ -1073,6 +1160,155 @@ export type Database = {
           },
         ]
       }
+      squad_likes: {
+        Row: {
+          created_at: string
+          player_id: string
+          squad_id: string
+        }
+        Insert: {
+          created_at?: string
+          player_id: string
+          squad_id: string
+        }
+        Update: {
+          created_at?: string
+          player_id?: string
+          squad_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "squad_likes_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "squad_likes_squad_id_fkey"
+            columns: ["squad_id"]
+            isOneToOne: false
+            referencedRelation: "squads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      squad_slots: {
+        Row: {
+          player_id: string
+          position: string
+          slot: number
+          squad_id: string
+        }
+        Insert: {
+          player_id: string
+          position: string
+          slot: number
+          squad_id: string
+        }
+        Update: {
+          player_id?: string
+          position?: string
+          slot?: number
+          squad_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "squad_slots_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "squad_slots_squad_id_fkey"
+            columns: ["squad_id"]
+            isOneToOne: false
+            referencedRelation: "squads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      squads: {
+        Row: {
+          club_id: string | null
+          created_at: string
+          formation: string
+          group_id: string
+          id: string
+          kind: Database["public"]["Enums"]["squad_kind"]
+          match_id: string | null
+          name: string
+          owner_player_id: string
+          published: boolean
+          published_at: string | null
+          side: number | null
+          team_size: number
+          updated_at: string
+        }
+        Insert: {
+          club_id?: string | null
+          created_at?: string
+          formation: string
+          group_id: string
+          id?: string
+          kind: Database["public"]["Enums"]["squad_kind"]
+          match_id?: string | null
+          name: string
+          owner_player_id: string
+          published?: boolean
+          published_at?: string | null
+          side?: number | null
+          team_size: number
+          updated_at?: string
+        }
+        Update: {
+          club_id?: string | null
+          created_at?: string
+          formation?: string
+          group_id?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["squad_kind"]
+          match_id?: string | null
+          name?: string
+          owner_player_id?: string
+          published?: boolean
+          published_at?: string | null
+          side?: number | null
+          team_size?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "squads_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "squads_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "squads_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "squads_owner_player_id_fkey"
+            columns: ["owner_player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stage_groups: {
         Row: {
           engine_key: string
@@ -1249,6 +1485,7 @@ export type Database = {
       }
       tournament_entries: {
         Row: {
+          club_id: string | null
           created_at: string
           id: string
           name: string
@@ -1257,6 +1494,7 @@ export type Database = {
           tournament_id: string
         }
         Insert: {
+          club_id?: string | null
           created_at?: string
           id?: string
           name: string
@@ -1265,6 +1503,7 @@ export type Database = {
           tournament_id: string
         }
         Update: {
+          club_id?: string | null
           created_at?: string
           id?: string
           name?: string
@@ -1273,6 +1512,13 @@ export type Database = {
           tournament_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tournament_entries_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tournament_entries_tournament_id_fkey"
             columns: ["tournament_id"]
@@ -1554,6 +1800,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      create_club: {
+        Args: {
+          p_group_id: string
+          p_name: string
+          p_primary_color?: string
+          p_secondary_color?: string
+          p_short_name: string
+        }
+        Returns: string
+      }
       create_group: { Args: { p_name: string }; Returns: string }
       create_invite: {
         Args: {
@@ -1587,10 +1843,12 @@ export type Database = {
         }
         Returns: string
       }
+      delete_club: { Args: { p_club_id: string }; Returns: undefined }
       delete_push_subscription: {
         Args: { p_endpoint: string }
         Returns: undefined
       }
+      delete_squad: { Args: { p_squad_id: string }; Returns: undefined }
       edit_match_result: {
         Args: {
           p_decided_by?: Database["public"]["Enums"]["tournament_decided_by"]
@@ -1602,6 +1860,13 @@ export type Database = {
           p_winner_entry_id?: string
         }
         Returns: undefined
+      }
+      get_featured_squad: {
+        Args: { p_group_id: string; p_window_days?: number }
+        Returns: {
+          likes: number
+          squad_id: string
+        }[]
       }
       get_group_leaderboard: {
         Args: { p_group_id: string; p_limit?: number; p_metric: string }
@@ -1651,7 +1916,19 @@ export type Database = {
           reason: string
         }[]
       }
+      get_shared_appearances: {
+        Args: { p_group_id: string }
+        Returns: {
+          matches: number
+          player_a: string
+          player_b: string
+        }[]
+      }
       leave_group: { Args: { p_group_id: string }; Returns: undefined }
+      like_squad: {
+        Args: { p_like?: boolean; p_squad_id: string }
+        Returns: undefined
+      }
       link_tournament_match: {
         Args: {
           p_scheduled_at: string
@@ -1693,12 +1970,31 @@ export type Database = {
         }
         Returns: string
       }
+      save_squad: {
+        Args: {
+          p_club_id?: string
+          p_formation: string
+          p_group_id: string
+          p_kind: string
+          p_match_id?: string
+          p_name: string
+          p_side?: number
+          p_slots: Json
+          p_squad_id: string
+          p_team_size: number
+        }
+        Returns: string
+      }
       save_tournament_entries: {
         Args: { p_entries: Json; p_tournament_id: string }
         Returns: undefined
       }
       seed_knockout_from_groups: {
         Args: { p_qualifiers: Json; p_tournament_id: string }
+        Returns: undefined
+      }
+      set_club_players: {
+        Args: { p_club_id: string; p_players: Json }
         Returns: undefined
       }
       set_match_lineup: {
@@ -1716,6 +2012,10 @@ export type Database = {
           p_role: Database["public"]["Enums"]["group_role"]
           p_user_id: string
         }
+        Returns: undefined
+      }
+      set_squad_published: {
+        Args: { p_published: boolean; p_squad_id: string }
         Returns: undefined
       }
       set_tournament_status: {
@@ -1769,6 +2069,17 @@ export type Database = {
         Args: { p_tournament_id: string }
         Returns: undefined
       }
+      update_club: {
+        Args: {
+          p_club_id: string
+          p_crest_path?: string
+          p_name: string
+          p_primary_color: string
+          p_secondary_color: string
+          p_short_name: string
+        }
+        Returns: undefined
+      }
       update_group: {
         Args: { p_group_id: string; p_name: string; p_settings: Json }
         Returns: undefined
@@ -1813,6 +2124,7 @@ export type Database = {
         | "cancelled"
       participant_role: "player" | "spectator"
       preferred_foot: "left" | "right" | "both"
+      squad_kind: "dream" | "lineup"
       stage_kind:
         | "league"
         | "single_elim"
@@ -1984,6 +2296,7 @@ export const Constants = {
       ],
       participant_role: ["player", "spectator"],
       preferred_foot: ["left", "right", "both"],
+      squad_kind: ["dream", "lineup"],
       stage_kind: [
         "league",
         "single_elim",
