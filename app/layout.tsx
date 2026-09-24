@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { RegisterServiceWorker } from "@/components/pwa/register-service-worker";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { es } from "@/messages/es";
@@ -22,6 +23,18 @@ export const metadata: Metadata = {
   },
   description: es.app.tagline,
   applicationName: es.app.name,
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/icons/apple-touch-icon.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: es.app.name,
+  },
 };
 
 export const viewport: Viewport = {
@@ -42,6 +55,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <ThemeProvider>
           {children}
           <Toaster position="top-center" richColors />
+          <RegisterServiceWorker />
         </ThemeProvider>
       </body>
     </html>
