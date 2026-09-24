@@ -26,12 +26,15 @@ Current milestone: **M1 UI → M2/M3 UI** (M0 done; dev on local Supabase stack)
 | T-018 | bracket view + match result actions + realtime | M4 | verified (via T-028) | deps T-017 |
 | T-019 | standings tables + fixtures | M4 | verified | deps T-028 |
 | T-028 | fix T-018: champion only when bracket decided + finished | M4 | verified | deps T-017; fixes rejected T-018 |
-| T-027 | finalized match: unattributed goals + admin "Asignar goles" | M3 | in_progress | deps T-019 |
+| T-027 | finalized match: unattributed goals + admin "Asignar goles" | M3 | verified | deps T-019 |
 | T-020 | polish: Verifier notes + quick-vote bias fix | M1 | todo | deps T-027 |
 | T-023 | M5 strings, badges on profile, share button, templates from es.ts | M5 | todo | deps T-020; /api/og/card ready |
 | T-024 | rankings page | M5 | todo | deps T-023 |
 | T-025 | /yo dashboard | M5 | todo | deps T-024 |
 | T-026 | notifications center, bell, prefs + push toggle | M5 | todo | deps T-025; lib/push/client.ts ready |
+| T-029 | clubs: list, create/edit, colors, crest upload, roster | M7 | todo | deps T-026 |
+| T-030 | squad builder on pitch, mis plantillas, publish/like/share, equipo de la semana | M7 | todo | deps T-029 |
+| T-031 | match lineup on the pitch + apply to match | M7 | todo | deps T-030 |
 
 FATHER side:
 - DONE: lib/settings, M1 schema (8 migrations, 77 pgTAP), lib/rating + lib/reconcile (151 tests) — commit 0b97cd8.
@@ -49,5 +52,6 @@ FATHER side:
 - DECIDED (user): score-only matches finalize with unattributed goals; admins assign them later (amend_match_stats) — 801e6d4. UI: T-027.
 - DONE: demo seeder `npm run seed:demo` (10 players, 3 finalized friendlies, 50 scouting ballots; needs `npm run dev`).
 - DONE: GK quick-mode scouting backend (div/han/kic/ref/pos → gk_*) — 13febb1; UI in T-020 step 11.
-- NEXT (FATHER): tournament e2e once T-019 lands, final full verification, then deploy decision with user.
+- DONE (M7 backend): squad engine (08b3f71), clubs+squads schema (2443eb7, pgTAP 033-034), actions (e4d34bf), view/context + /api/og/squad (3197e1c).
+- NEXT (FATHER): club_id on tournament entries (save_tournament_entries) + e2e for tournaments/squads, final full verification, then deploy decision with user.
 
