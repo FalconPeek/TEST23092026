@@ -34,7 +34,7 @@ export function DangerZone({
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [newOwnerId, setNewOwnerId] = useState("");
 
-  const otherMembers = members.filter((m) => m.role !== "owner");
+  const otherMembers = members.filter((m) => m.role === "admin" || m.role === "member");
 
   function handleTransfer() {
     if (!newOwnerId) return;

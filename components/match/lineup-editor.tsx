@@ -204,7 +204,7 @@ export function LineupEditor({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{es.matches.startReporting}</DialogTitle>
-            <DialogDescription>{es.matches.cancelConfirm}</DialogDescription>
+            <DialogDescription>{es.matches.startReportingConfirm}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <DialogClose asChild>

@@ -1,17 +1,10 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { PlayerProfileForm, type PlayerProfile } from "./player-profile-form";
 import { es } from "@/messages/es";
 
 afterEach(cleanup);
-
-// jsdom doesn't implement these; Radix Select's pointer-based interactions need them.
-beforeAll(() => {
-  Element.prototype.hasPointerCapture ??= () => false;
-  Element.prototype.releasePointerCapture ??= () => {};
-  Element.prototype.scrollIntoView ??= () => {};
-});
 
 const mockUpdateMyPlayer = vi.fn();
 const mockUpdatePlayer = vi.fn();
@@ -81,6 +74,19 @@ describe("PlayerProfileForm", () => {
 
     expect(mockUpdateMyPlayer).toHaveBeenCalledWith(expect.objectContaining({ groupId: "g1", displayName: "Juan" }));
     expect(mockUpdatePlayer).not.toHaveBeenCalled();
+  });
+
+  it("clears an already-set preferred foot via the 'Sin especificar' option", async () => {
+    mockUpdateMyPlayer.mockResolvedValue({ ok: true, data: undefined });
+    const user = userEvent.setup();
+    render(<PlayerProfileForm groupId="g1" editedByAdmin={false} player={{ ...basePlayer, preferredFoot: "left" }} />);
+
+    expect(screen.getByRole("radio", { name: es.foot.left })).toHaveAttribute("aria-checked", "true");
+
+    await user.click(screen.getByRole("radio", { name: es.player.preferredFootNone }));
+    await user.click(screen.getByRole("button", { name: es.player.save }));
+
+    expect(mockUpdateMyPlayer).toHaveBeenCalledWith(expect.objectContaining({ preferredFoot: undefined }));
   });
 
   it("calls updatePlayer with the playerId when an admin edits a guest", async () => {

@@ -36,6 +36,7 @@ export function MiniStepper({
           type="button"
           onClick={() => onChange(Math.max(0, value - 1))}
           disabled={value <= 0}
+          aria-label={es.match.decrease(label)}
           className="flex size-11 items-center justify-center rounded-md border border-border text-base disabled:opacity-40"
         >
           −
@@ -45,6 +46,7 @@ export function MiniStepper({
           type="button"
           onClick={() => onChange(Math.min(max, value + 1))}
           disabled={value >= max}
+          aria-label={es.match.increase(label)}
           className="flex size-11 items-center justify-center rounded-md border border-border text-base disabled:opacity-40"
         >
           +

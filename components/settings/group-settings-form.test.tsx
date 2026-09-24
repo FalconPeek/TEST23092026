@@ -48,7 +48,22 @@ describe("GroupSettingsForm", () => {
     await user.click(screen.getByRole("button", { name: es.common.save }));
 
     expect(mockUpdateGroup).not.toHaveBeenCalled();
-    expect(await screen.findByText((_, el) => el?.tagName === "P" && el.classList.contains("text-destructive"))).toBeInTheDocument();
+    expect(screen.getByText(es.errors.fieldRange(1, 24 * 14))).toBeInTheDocument();
+  });
+
+  it("blocks submit with a required-field error when a number input is cleared entirely", async () => {
+    const user = userEvent.setup();
+    render(
+      <GroupSettingsForm groupId="g1" initialName="Los del jueves" initialSettings={defaultGroupSettings} />,
+    );
+
+    const reportHours = screen.getByLabelText(es.groupSettings.reportHoursLabel);
+    await user.clear(reportHours);
+    expect(reportHours).toHaveValue(null);
+    await user.click(screen.getByRole("button", { name: es.common.save }));
+
+    expect(mockUpdateGroup).not.toHaveBeenCalled();
+    expect(screen.getByText(es.groupSettings.required)).toBeInTheDocument();
   });
 
   it("restores defaults on reset after a field was changed", async () => {

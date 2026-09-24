@@ -29,7 +29,13 @@ describe("ScoreForm tap targets (T-022 self-check regression)", () => {
       />,
     );
 
-    for (const button of screen.getAllByRole("button", { name: /^[−+]$/ })) {
+    const buttons = [
+      screen.getByRole("button", { name: es.match.decrease("Blancos") }),
+      screen.getByRole("button", { name: es.match.increase("Blancos") }),
+      screen.getByRole("button", { name: es.match.decrease("Negros") }),
+      screen.getByRole("button", { name: es.match.increase("Negros") }),
+    ];
+    for (const button of buttons) {
       expect(button.className).toContain("size-11");
     }
   });
@@ -65,10 +71,12 @@ describe("ScoreForm", () => {
       />,
     );
 
-    const [team1Minus, team1Plus, , team2Plus] = screen.getAllByRole("button", { name: /^[−+]$/ });
-    await user.click(team1Plus!);
-    await user.click(team1Plus!);
-    await user.click(team2Plus!);
+    const team1Minus = screen.getByRole("button", { name: es.match.decrease("Blancos") });
+    const team1Plus = screen.getByRole("button", { name: es.match.increase("Blancos") });
+    const team2Plus = screen.getByRole("button", { name: es.match.increase("Negros") });
+    await user.click(team1Plus);
+    await user.click(team1Plus);
+    await user.click(team2Plus);
     expect(team1Minus).toBeEnabled();
 
     await user.click(screen.getByRole("button", { name: es.match.saveScore }));

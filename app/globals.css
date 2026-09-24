@@ -68,6 +68,12 @@
   --color-tier-provisional-to: var(--tier-provisional-to);
   --color-tier-provisional-fg: var(--tier-provisional-fg);
   --color-tier-provisional-accent: var(--tier-provisional-accent);
+
+  /* Attribute bar tokens (bg-stat-low/mid/good/great), exposed as Tailwind colors. */
+  --color-stat-low: var(--stat-low);
+  --color-stat-mid: var(--stat-mid);
+  --color-stat-good: var(--stat-good);
+  --color-stat-great: var(--stat-great);
 }
 
 :root {
@@ -129,6 +135,12 @@
   --tier-provisional-to: oklch(0.32 0.01 250);
   --tier-provisional-fg: oklch(0.9 0 0);
   --tier-provisional-accent: oklch(0.55 0.01 250);
+
+  /* Attribute bar tokens: theme-independent (same meaning in light/dark). */
+  --stat-low: oklch(0.62 0.21 25);
+  --stat-mid: oklch(0.75 0.16 70);
+  --stat-good: oklch(0.75 0.19 130);
+  --stat-great: oklch(0.65 0.17 145);
 }
 
 .dark {

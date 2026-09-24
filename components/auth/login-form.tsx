@@ -36,6 +36,7 @@ export function LoginForm({ next }: { next: string }) {
         <Button
           type="button"
           variant="outline"
+          className="h-11"
           disabled={oauthPending}
           onClick={() => handleOAuth("google")}
         >
@@ -44,6 +45,7 @@ export function LoginForm({ next }: { next: string }) {
         <Button
           type="button"
           variant="outline"
+          className="h-11"
           disabled={oauthPending}
           onClick={() => handleOAuth("discord")}
         >
@@ -78,6 +80,7 @@ export function LoginForm({ next }: { next: string }) {
                 type="email"
                 placeholder={es.auth.emailPlaceholder}
                 required
+                className="h-11"
               />
             </div>
             {magicState && !magicState.ok && (
@@ -90,7 +93,7 @@ export function LoginForm({ next }: { next: string }) {
                 {es.auth.magicLinkSent}
               </p>
             )}
-            <Button type="submit" disabled={magicPending}>
+            <Button type="submit" className="h-11" disabled={magicPending}>
               {es.auth.sendMagicLink}
             </Button>
           </form>
@@ -107,18 +110,19 @@ export function LoginForm({ next }: { next: string }) {
                 type="email"
                 placeholder={es.auth.emailPlaceholder}
                 required
+                className="h-11"
               />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="password">{es.auth.passwordLabel}</Label>
-              <Input id="password" name="password" type="password" required minLength={6} />
+              <Input id="password" name="password" type="password" required minLength={6} className="h-11" />
             </div>
             {passwordState && !passwordState.ok && (
               <p className="text-sm text-destructive" role="alert">
                 {passwordState.error}
               </p>
             )}
-            <Button type="submit" disabled={passwordPending}>
+            <Button type="submit" className="h-11" disabled={passwordPending}>
               {es.auth.signInWithPassword}
             </Button>
           </form>

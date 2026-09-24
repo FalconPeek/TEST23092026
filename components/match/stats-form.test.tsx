@@ -39,7 +39,7 @@ describe("StatsForm tap targets (T-021 regression)", () => {
       />,
     );
 
-    const buttons = screen.getAllByRole("button", { name: /^[−+]$/ });
+    const buttons = screen.getAllByRole("button", { name: /^(Restar a|Sumar a) /i });
     expect(buttons.length).toBeGreaterThan(0);
     for (const button of buttons) {
       expect(button.className).toContain("size-11");
@@ -113,7 +113,7 @@ describe("StatsForm", () => {
       />,
     );
 
-    const juanGoalsPlus = within(rowFor("Juan")).getAllByRole("button", { name: "+" })[0]!;
+    const juanGoalsPlus = within(rowFor("Juan")).getByRole("button", { name: es.match.increase(es.match.goals) });
     await user.click(juanGoalsPlus);
     await user.click(screen.getByRole("button", { name: es.match.saveStats }));
 

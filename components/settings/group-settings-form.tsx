@@ -37,6 +37,31 @@ function humanize(key: string): string {
   return words[0]!.charAt(0).toUpperCase() + words[0]!.slice(1) + (words.length > 1 ? " " + words.slice(1).join(" ") : "");
 }
 
+// Only the fields whose schema actually chains both a min and a max; a zod issue only ever
+// carries the one bound it violated, so a single-bounded field (most of them: .positive(),
+// .min() alone, …) falls back to the generic `fieldInvalid` copy instead of a fabricated range.
+const FIELD_RANGES: Record<string, [number, number]> = {
+  "windows.report_hours": [1, 24 * 14],
+  "windows.rating_hours": [1, 24 * 14],
+  "rating.spectator_weight": [0, 1],
+  "tiers.silver_min": [1, 99],
+  "tiers.gold_min": [1, 99],
+  "tiers.special_min": [1, 99],
+  "rating.default_mean": [1, 99],
+  "rating.collusion_weight": [0, 1],
+  "rating.form.center": [1, 10],
+  "rating.form.primary_attr_count": [1, 29],
+};
+
+function zodIssueMessage(dotted: string, code: string): string {
+  if (code === "invalid_type") return es.errors.fieldRequired;
+  if (code === "too_small" || code === "too_big") {
+    const range = FIELD_RANGES[dotted];
+    if (range) return es.errors.fieldRange(range[0], range[1]);
+  }
+  return es.errors.fieldInvalid;
+}
+
 type NumericField = { path: string[]; dotted: string; label: string };
 
 const RATING_COMMON_PATHS = new Set(["rating.spectator_weight", "rating.min_raters"]);
@@ -68,6 +93,7 @@ export function GroupSettingsForm({
   const [name, setName] = useState(initialName);
   const [settings, setSettings] = useState<GroupSettings>(initialSettings);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [rawValues, setRawValues] = useState<Record<string, string>>({});
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -76,8 +102,25 @@ export function GroupSettingsForm({
     setSettings((prev) => setIn(prev, path, value) as GroupSettings);
   }
 
+  /** A cleared number input keeps its empty string here instead of silently becoming 0 in
+   * `settings` -- handleSubmit blocks with `groupSettings.required` while any path is empty. */
+  function numberValue(path: string[]): string {
+    const dotted = path.join(".");
+    return dotted in rawValues ? rawValues[dotted]! : String(getIn(settings, path));
+  }
+
+  function numberField(path: string[], raw: string) {
+    const dotted = path.join(".");
+    setRawValues((prev) => ({ ...prev, [dotted]: raw }));
+    const trimmed = raw.trim();
+    if (trimmed === "") return;
+    const n = Number(trimmed);
+    if (!Number.isNaN(n)) field(path, n);
+  }
+
   function handleReset() {
     setSettings(defaultGroupSettings);
+    setRawValues({});
     setErrors({});
   }
 
@@ -87,11 +130,21 @@ export function GroupSettingsForm({
       setErrors({ name: es.errors.validation });
       return;
     }
+    const requiredErrors: Record<string, string> = {};
+    for (const [dotted, raw] of Object.entries(rawValues)) {
+      if (raw.trim() === "") requiredErrors[dotted] = es.groupSettings.required;
+    }
+    if (Object.keys(requiredErrors).length > 0) {
+      setErrors(requiredErrors);
+      toast.error(es.errors.validation);
+      return;
+    }
     const parsed = groupSettingsSchema.safeParse(settings);
     if (!parsed.success) {
       const map: Record<string, string> = {};
       for (const issue of parsed.error.issues) {
-        map[issue.path.join(".")] = issue.message;
+        const dotted = issue.path.join(".");
+        map[dotted] = zodIssueMessage(dotted, issue.code);
       }
       setErrors(map);
       toast.error(es.errors.validation);
@@ -146,8 +199,8 @@ export function GroupSettingsForm({
           <Input
             id="report-hours"
             type="number"
-            value={settings.windows.report_hours}
-            onChange={(e) => field(["windows", "report_hours"], Number(e.target.value))}
+            value={numberValue(["windows", "report_hours"])}
+            onChange={(e) => numberField(["windows", "report_hours"], e.target.value)}
           />
           {errors["windows.report_hours"] && (
             <p className="text-sm text-destructive">{errors["windows.report_hours"]}</p>
@@ -160,8 +213,8 @@ export function GroupSettingsForm({
           <Input
             id="rating-hours"
             type="number"
-            value={settings.windows.rating_hours}
-            onChange={(e) => field(["windows", "rating_hours"], Number(e.target.value))}
+            value={numberValue(["windows", "rating_hours"])}
+            onChange={(e) => numberField(["windows", "rating_hours"], e.target.value)}
           />
           {errors["windows.rating_hours"] && (
             <p className="text-sm text-destructive">{errors["windows.rating_hours"]}</p>
@@ -177,8 +230,8 @@ export function GroupSettingsForm({
             step="0.05"
             min={0}
             max={1}
-            value={settings.rating.spectator_weight}
-            onChange={(e) => field(["rating", "spectator_weight"], Number(e.target.value))}
+            value={numberValue(["rating", "spectator_weight"])}
+            onChange={(e) => numberField(["rating", "spectator_weight"], e.target.value)}
           />
           {errors["rating.spectator_weight"] && (
             <p className="text-sm text-destructive">{errors["rating.spectator_weight"]}</p>
@@ -192,8 +245,8 @@ export function GroupSettingsForm({
             id="min-raters"
             type="number"
             min={1}
-            value={settings.rating.min_raters}
-            onChange={(e) => field(["rating", "min_raters"], Number(e.target.value))}
+            value={numberValue(["rating", "min_raters"])}
+            onChange={(e) => numberField(["rating", "min_raters"], e.target.value)}
           />
           {errors["rating.min_raters"] && <p className="text-sm text-destructive">{errors["rating.min_raters"]}</p>}
         </div>
@@ -205,8 +258,8 @@ export function GroupSettingsForm({
             id="revote-days"
             type="number"
             min={0}
-            value={settings.scouting.revote_days}
-            onChange={(e) => field(["scouting", "revote_days"], Number(e.target.value))}
+            value={numberValue(["scouting", "revote_days"])}
+            onChange={(e) => numberField(["scouting", "revote_days"], e.target.value)}
           />
           {errors["scouting.revote_days"] && (
             <p className="text-sm text-destructive">{errors["scouting.revote_days"]}</p>
@@ -220,8 +273,8 @@ export function GroupSettingsForm({
             type="number"
             min={1}
             max={99}
-            value={settings.tiers.silver_min}
-            onChange={(e) => field(["tiers", "silver_min"], Number(e.target.value))}
+            value={numberValue(["tiers", "silver_min"])}
+            onChange={(e) => numberField(["tiers", "silver_min"], e.target.value)}
           />
         </div>
         <div className="flex flex-col gap-1.5">
@@ -231,8 +284,8 @@ export function GroupSettingsForm({
             type="number"
             min={1}
             max={99}
-            value={settings.tiers.gold_min}
-            onChange={(e) => field(["tiers", "gold_min"], Number(e.target.value))}
+            value={numberValue(["tiers", "gold_min"])}
+            onChange={(e) => numberField(["tiers", "gold_min"], e.target.value)}
           />
         </div>
         <div className="flex flex-col gap-1.5">
@@ -242,8 +295,8 @@ export function GroupSettingsForm({
             type="number"
             min={1}
             max={99}
-            value={settings.tiers.special_min}
-            onChange={(e) => field(["tiers", "special_min"], Number(e.target.value))}
+            value={numberValue(["tiers", "special_min"])}
+            onChange={(e) => numberField(["tiers", "special_min"], e.target.value)}
           />
         </div>
         {errors.tiers && <p className="text-sm text-destructive sm:col-span-2">{errors.tiers}</p>}
@@ -284,13 +337,13 @@ export function GroupSettingsForm({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {advancedFields.map((f) => (
             <div key={f.dotted} className="flex flex-col gap-1">
-              <Label htmlFor={`adv-${f.dotted}`}>{f.label}</Label>
+              <Label htmlFor={`adv-${f.dotted}`}>{es.groupSettings.advanced[f.dotted] ?? f.label}</Label>
               <Input
                 id={`adv-${f.dotted}`}
                 type="number"
                 step="any"
-                value={getIn(settings, f.path) as number}
-                onChange={(e) => field(f.path, Number(e.target.value))}
+                value={numberValue(f.path)}
+                onChange={(e) => numberField(f.path, e.target.value)}
               />
               {errors[f.dotted] && <p className="text-sm text-destructive">{errors[f.dotted]}</p>}
             </div>

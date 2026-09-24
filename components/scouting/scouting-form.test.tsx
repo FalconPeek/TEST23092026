@@ -1,21 +1,10 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ScoutingForm } from "./scouting-form";
 import { es } from "@/messages/es";
 
 afterEach(cleanup);
-
-// jsdom doesn't implement ResizeObserver, which Radix Slider uses to measure its track.
-beforeAll(() => {
-  if (typeof globalThis.ResizeObserver === "undefined") {
-    globalThis.ResizeObserver = class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    };
-  }
-});
 
 const mockSubmitScoutingVotes = vi.fn();
 const mockSubmitPlaystyleVotes = vi.fn();
@@ -45,10 +34,20 @@ const BASE_PROPS = {
 };
 
 describe("ScoutingForm", () => {
-  it("sends all 6 quick keys even when untouched", async () => {
+  it("disables save in quick mode until at least one slider is touched", () => {
+    render(<ScoutingForm {...BASE_PROPS} />);
+    expect(screen.getByRole("button", { name: es.scouting.save })).toBeDisabled();
+  });
+
+  it("sends only the touched key(s) in quick mode, never an implicit default for the rest", async () => {
     mockSubmitScoutingVotes.mockResolvedValue({ ok: true, data: undefined });
     const user = userEvent.setup();
     render(<ScoutingForm {...BASE_PROPS} />);
+
+    const label = screen.getByText(es.card.faceStats.sho);
+    const wrapper = label.closest("div")!.parentElement!;
+    within(wrapper).getByRole("slider").focus();
+    await user.keyboard("{ArrowRight}");
 
     await user.click(screen.getByRole("button", { name: es.scouting.save }));
 
@@ -56,7 +55,49 @@ describe("ScoutingForm", () => {
       groupId: "g1",
       targetPlayerId: "p1",
       mode: "quick",
-      votes: { pac: 5, sho: 5, pas: 5, dri: 5, def: 5, phy: 5 },
+      votes: { sho: 6 },
+    });
+  });
+
+  it("counts a prefilled quick vote as touched", () => {
+    render(<ScoutingForm {...BASE_PROPS} prefillQuickVotes={{ pac: 7 }} />);
+    expect(screen.getByRole("button", { name: es.scouting.save })).toBeEnabled();
+  });
+
+  it("shows the outfield six face stats in quick mode for a non-GK target", () => {
+    render(<ScoutingForm {...BASE_PROPS} isGk={false} />);
+    expect(screen.getByText(es.card.faceStats.pac)).toBeInTheDocument();
+    expect(screen.queryByText(es.card.gkStats.div)).not.toBeInTheDocument();
+  });
+
+  it("shows the GK stats (VEL/EST/MAN/SAQ/REF/COL) in quick mode for a GK target", () => {
+    render(<ScoutingForm {...BASE_PROPS} isGk={true} />);
+    expect(screen.getByText(es.card.gkStats.spd)).toBeInTheDocument();
+    expect(screen.getByText(es.card.gkStats.div)).toBeInTheDocument();
+    expect(screen.getByText(es.card.gkStats.han)).toBeInTheDocument();
+    expect(screen.getByText(es.card.gkStats.kic)).toBeInTheDocument();
+    expect(screen.getByText(es.card.gkStats.ref)).toBeInTheDocument();
+    expect(screen.getByText(es.card.gkStats.pos)).toBeInTheDocument();
+    expect(screen.queryByText(es.card.faceStats.sho)).not.toBeInTheDocument();
+  });
+
+  it("sends the pac key (labeled VEL) when a GK target's speed slider is touched", async () => {
+    mockSubmitScoutingVotes.mockResolvedValue({ ok: true, data: undefined });
+    const user = userEvent.setup();
+    render(<ScoutingForm {...BASE_PROPS} isGk={true} />);
+
+    const label = screen.getByText(es.card.gkStats.spd);
+    const wrapper = label.closest("div")!.parentElement!;
+    within(wrapper).getByRole("slider").focus();
+    await user.keyboard("{ArrowRight}");
+
+    await user.click(screen.getByRole("button", { name: es.scouting.save }));
+
+    expect(mockSubmitScoutingVotes).toHaveBeenCalledWith({
+      groupId: "g1",
+      targetPlayerId: "p1",
+      mode: "quick",
+      votes: { pac: 6 },
     });
   });
 

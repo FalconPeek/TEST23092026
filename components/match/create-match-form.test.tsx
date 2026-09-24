@@ -1,17 +1,10 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CreateMatchForm } from "./create-match-form";
 import { es } from "@/messages/es";
 
 afterEach(cleanup);
-
-// jsdom doesn't implement these; Radix Select's pointer-based interactions need them.
-beforeAll(() => {
-  Element.prototype.hasPointerCapture ??= () => false;
-  Element.prototype.releasePointerCapture ??= () => {};
-  Element.prototype.scrollIntoView ??= () => {};
-});
 
 const mockPush = vi.fn();
 const mockCreateMatch = vi.fn();

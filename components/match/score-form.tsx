@@ -30,6 +30,7 @@ function Stepper({
           className="size-11"
           onClick={() => onChange(Math.max(min, value - 1))}
           disabled={value <= min}
+          aria-label={es.match.decrease(label)}
         >
           −
         </Button>
@@ -41,6 +42,7 @@ function Stepper({
           className="size-11"
           onClick={() => onChange(Math.min(max, value + 1))}
           disabled={value >= max}
+          aria-label={es.match.increase(label)}
         >
           +
         </Button>

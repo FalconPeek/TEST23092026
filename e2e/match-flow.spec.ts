@@ -76,10 +76,11 @@ test("a player reports the score and rates everyone from the UI", async ({ page 
   await loginViaUi(page, reporter, `/g/${groupId}/partidos/${matchId}`);
 
   const scoreForm = page.locator("div.rounded-xl", { has: page.getByRole("button", { name: "Guardar resultado" }) });
-  const plus = scoreForm.getByRole("button", { name: "+" });
-  await plus.nth(0).click();
-  await plus.nth(0).click();
-  await plus.nth(1).click();
+  const team1Plus = scoreForm.getByRole("button", { name: "Sumar a Blancos" });
+  const team2Plus = scoreForm.getByRole("button", { name: "Sumar a Negros" });
+  await team1Plus.click();
+  await team1Plus.click();
+  await team2Plus.click();
   await scoreForm.getByRole("button", { name: "Guardar resultado" }).click();
   await expect(page.getByText("Resultado cargado")).toBeVisible();
 

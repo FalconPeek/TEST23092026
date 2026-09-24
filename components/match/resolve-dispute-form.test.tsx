@@ -49,7 +49,7 @@ describe("ResolveDisputeForm", () => {
       />,
     );
 
-    const juanGoalsPlus = within(rowFor("Juan")).getAllByRole("button", { name: "+" })[0]!;
+    const juanGoalsPlus = within(rowFor("Juan")).getByRole("button", { name: es.match.increase(es.match.goals) });
     await user.click(juanGoalsPlus);
 
     await user.click(screen.getByRole("button", { name: es.match.resolve }));

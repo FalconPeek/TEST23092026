@@ -131,9 +131,9 @@ export function PlayerProfileForm({
       <div className="flex flex-col gap-1.5">
         <Label>{es.player.preferredFoot}</Label>
         <RadioGroup
-          value={preferredFoot}
-          onValueChange={(v) => setPreferredFoot(v as "left" | "right" | "both")}
-          className="flex flex-row gap-4"
+          value={preferredFoot || "none"}
+          onValueChange={(v) => setPreferredFoot(v === "none" ? "" : (v as "left" | "right" | "both"))}
+          className="flex flex-row flex-wrap gap-4"
         >
           {(["left", "right", "both"] as const).map((foot) => (
             <label key={foot} className="flex items-center gap-1.5 text-sm">
@@ -141,6 +141,10 @@ export function PlayerProfileForm({
               {es.foot[foot]}
             </label>
           ))}
+          <label className="flex items-center gap-1.5 text-sm">
+            <RadioGroupItem value="none" id="foot-none" />
+            {es.player.preferredFootNone}
+          </label>
         </RadioGroup>
       </div>
 

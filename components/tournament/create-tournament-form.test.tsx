@@ -1,17 +1,10 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CreateTournamentForm } from "./create-tournament-form";
 import { es } from "@/messages/es";
 
 afterEach(cleanup);
-
-// jsdom doesn't implement these; Radix Select/RadioGroup pointer-based interactions need them.
-beforeAll(() => {
-  Element.prototype.hasPointerCapture ??= () => false;
-  Element.prototype.releasePointerCapture ??= () => {};
-  Element.prototype.scrollIntoView ??= () => {};
-});
 
 const mockPush = vi.fn();
 const mockCreateTournament = vi.fn();
@@ -89,6 +82,7 @@ describe("CreateTournamentForm submit", () => {
     await user.click(screen.getByRole("button", { name: es.tournaments.new }));
 
     expect(mockCreateTournament).not.toHaveBeenCalled();
+    expect(screen.getByText(es.errors.fieldRange(1, 16))).toBeInTheDocument();
   });
 
   it("submits the parsed settings for a valid league tournament", async () => {

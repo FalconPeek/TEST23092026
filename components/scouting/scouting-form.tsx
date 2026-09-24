@@ -11,9 +11,12 @@ import { es } from "@/messages/es";
 import { submitPlaystyleVotes, submitScoutingVotes, submitStarVotes } from "@/lib/actions/scouting";
 import {
   GK_ATTRIBUTES,
+  GK_QUICK_KEYS,
   OUTFIELD_FACE_STATS,
+  isGkQuickKey,
   subAttributesOfFaceStat,
   type AttributeKey,
+  type OutfieldFaceStat,
 } from "@/lib/rating/attributes";
 import { GK_PLAYSTYLES, PLAYSTYLES, type PlayStyleCode } from "@/lib/rating/playstyles";
 
@@ -42,8 +45,16 @@ export type ScoutingFormProps = {
 
 const GK_PLAYSTYLE_SET = new Set<string>(GK_PLAYSTYLES);
 
-function defaultQuickVotes(): Record<string, number> {
-  return Object.fromEntries(OUTFIELD_FACE_STATS.map((key) => [key, 5]));
+/** GK targets vote on the card's GK stats (VEL/EST/MAN/SAQ/REF/COL) instead of the outfield six;
+ * "pac" is still the key for VEL since a GK's SPD face stat is derived from it, same as outfield. */
+const GK_QUICK_VOTE_KEYS = ["pac", ...Object.keys(GK_QUICK_KEYS)] as const;
+
+function quickVoteLabel(key: string, isGk: boolean): string {
+  if (isGk) {
+    if (key === "pac") return es.card.gkStats.spd;
+    if (isGkQuickKey(key)) return es.card.gkStats[key];
+  }
+  return es.card.faceStats[key as OutfieldFaceStat];
 }
 
 export function ScoutingForm({
@@ -62,7 +73,6 @@ export function ScoutingForm({
 
   const [tab, setTab] = useState<"quick" | "detailed">(initialTab);
   const [quickVotes, setQuickVotes] = useState<Record<string, number>>(() => ({
-    ...defaultQuickVotes(),
     ...prefillQuickVotes,
   }));
   const [detailedVotes, setDetailedVotes] = useState<Record<string, number>>(() => ({
@@ -162,12 +172,12 @@ export function ScoutingForm({
 
         <TabsContent value="quick" className="flex flex-col gap-4 pt-4">
           <p className="text-sm text-muted-foreground">{es.scouting.quickHelp}</p>
-          {OUTFIELD_FACE_STATS.map((stat) => (
+          {(isGk ? GK_QUICK_VOTE_KEYS : OUTFIELD_FACE_STATS).map((key) => (
             <VoteSlider
-              key={stat}
-              label={es.card.faceStats[stat]}
-              value={quickVotes[stat]}
-              onChange={(v) => setQuickVotes((prev) => ({ ...prev, [stat]: v }))}
+              key={key}
+              label={quickVoteLabel(key, isGk)}
+              value={quickVotes[key]}
+              onChange={(v) => setQuickVotes((prev) => ({ ...prev, [key]: v }))}
               disabled={disabled}
             />
           ))}
@@ -198,7 +208,12 @@ export function ScoutingForm({
         <Button
           className="w-full"
           onClick={handleSubmitVotes}
-          disabled={disabled || votesPending || (tab === "detailed" && Object.keys(detailedVotes).length === 0)}
+          disabled={
+            disabled ||
+            votesPending ||
+            (tab === "quick" && Object.keys(quickVotes).length === 0) ||
+            (tab === "detailed" && Object.keys(detailedVotes).length === 0)
+          }
         >
           {es.scouting.save}
         </Button>

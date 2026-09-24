@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { EntriesEditor, type EntryPlayer } from "./entries-editor";
@@ -6,13 +6,6 @@ import { es } from "@/messages/es";
 import type { DraftEntry } from "@/lib/tournament/entries";
 
 afterEach(cleanup);
-
-// jsdom doesn't implement these; Radix Select's pointer-based interactions need them.
-beforeAll(() => {
-  Element.prototype.hasPointerCapture ??= () => false;
-  Element.prototype.releasePointerCapture ??= () => {};
-  Element.prototype.scrollIntoView ??= () => {};
-});
 
 const mockRefresh = vi.fn();
 const mockSaveTournamentEntries = vi.fn();

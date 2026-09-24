@@ -1,21 +1,10 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { VoteSlider } from "./vote-slider";
 import { es } from "@/messages/es";
 
 afterEach(cleanup);
-
-// jsdom doesn't implement ResizeObserver, which Radix Slider uses to measure its track.
-beforeAll(() => {
-  if (typeof globalThis.ResizeObserver === "undefined") {
-    globalThis.ResizeObserver = class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    };
-  }
-});
 
 describe("VoteSlider", () => {
   it("shows the unset label until touched", () => {

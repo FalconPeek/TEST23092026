@@ -34,6 +34,23 @@ function setIn(obj: unknown, path: string[], value: unknown): unknown {
   return { ...record, [head]: setIn(record[head], rest, value) };
 }
 
+// Only the fields whose schema chains both a min and a max; a zod issue only ever carries the
+// one bound it violated (points.win/draw/loss are .min()-only, so they fall back to fieldInvalid).
+const FIELD_RANGES: Record<string, [number, number]> = {
+  "groups_ko.group_count": [1, 16],
+  "groups_ko.qualifiers_per_group": [1, 8],
+  "swiss.rounds": [1, 20],
+};
+
+function zodIssueMessage(dotted: string, code: string): string {
+  if (code === "invalid_type") return es.errors.fieldRequired;
+  if (code === "too_small" || code === "too_big") {
+    const range = FIELD_RANGES[dotted];
+    if (range) return es.errors.fieldRange(range[0], range[1]);
+  }
+  return es.errors.fieldInvalid;
+}
+
 function TiebreakerEditor({
   value,
   onChange,
@@ -120,7 +137,8 @@ export function CreateTournamentForm({ groupId, defaultTeamSize }: { groupId: st
     if (!parsed.success) {
       const map: Record<string, string> = {};
       for (const issue of parsed.error.issues) {
-        map[issue.path.join(".")] = issue.message;
+        const dotted = issue.path.join(".");
+        map[dotted] = zodIssueMessage(dotted, issue.code);
       }
       setErrors(map);
       toast.error(es.errors.validation);

@@ -112,7 +112,7 @@ export default async function PlayerProfilePage({
               <div className="flex flex-wrap gap-1.5">
                 {topPositions.map(([position, ovr]) => (
                   <Badge key={position} variant="outline">
-                    {position} {ovr}
+                    {es.positions[position]} {ovr}
                   </Badge>
                 ))}
               </div>
@@ -125,7 +125,7 @@ export default async function PlayerProfilePage({
         <h2 className="text-sm font-medium text-muted-foreground">{es.profile.stats}</h2>
         {matchesPlayed === 0 ? (
           <Card>
-            <CardContent className="py-4 text-sm text-muted-foreground">{es.groups.noMatches}</CardContent>
+            <CardContent className="py-4 text-sm text-muted-foreground">{es.profile.noStats}</CardContent>
           </Card>
         ) : (
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
