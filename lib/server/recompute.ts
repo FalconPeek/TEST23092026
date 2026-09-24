@@ -4,7 +4,6 @@
 import {
   GK_ATTRIBUTES,
   OUTFIELD_ATTRIBUTES,
-  OUTFIELD_FACE_STATS,
   POSITIONS,
   aggregateAttribute,
   buildPlayerCard,
@@ -16,17 +15,17 @@ import {
   mean,
   raterStats as computeRaterStatsPure,
   stdDev,
-  subAttributesOfFaceStat,
+  quickVoteAttributes,
 } from "@/lib/rating";
 import type {
   AttributeKey,
   CollusionPair,
   MatchFormInput,
-  OutfieldFaceStat,
   PositionCode,
   RaterOverallResidual,
   RaterPairResidual,
   RaterStat,
+  ScoutingVoteKey,
 } from "@/lib/rating";
 import type { RatingSettings } from "@/lib/settings/group";
 import type {
@@ -41,10 +40,6 @@ const DEFAULT_POSITION: PositionCode = "MC"; // fallback when a player has no (v
 
 function normalizePosition(raw: string | null): PositionCode {
   return (POSITIONS as readonly string[]).includes(raw ?? "") ? (raw as PositionCode) : DEFAULT_POSITION;
-}
-
-function isFaceStatCode(attribute: string): attribute is OutfieldFaceStat {
-  return (OUTFIELD_FACE_STATS as readonly string[]).includes(attribute);
 }
 
 /** Group-wide mean per attribute, from every player's current attribute_ratings row. Used as
@@ -78,8 +73,7 @@ interface ExpandedGroupVote {
 function expandGroupVotes(votes: GroupScoutingVote[]): ExpandedGroupVote[] {
   const out: ExpandedGroupVote[] = [];
   for (const v of votes) {
-    const attrs = isFaceStatCode(v.attribute) ? subAttributesOfFaceStat(v.attribute) : [v.attribute as AttributeKey];
-    for (const attr of attrs) out.push({ raterId: v.raterId, targetId: v.targetId, attribute: attr, value: v.value });
+    for (const attr of quickVoteAttributes(v.attribute)) out.push({ raterId: v.raterId, targetId: v.targetId, attribute: attr, value: v.value });
   }
   return out;
 }
@@ -239,7 +233,7 @@ export async function recomputePlayer(
   const expandedVotes = expandScoutingVotes(
     targetVotes.scouting.map((v) => ({
       raterId: v.raterId,
-      attribute: v.attribute as AttributeKey | OutfieldFaceStat,
+      attribute: v.attribute as ScoutingVoteKey,
       value: v.value,
       createdAt: v.createdAt,
       raterRole: v.raterRole,

@@ -34,7 +34,7 @@ function rand(): number {
   state = (state * 1664525 + 1013904223) % 2 ** 32;
   return state / 2 ** 32;
 }
-const pick = <T>(items: readonly T[]): T => items[Math.floor(rand() * items.length)]!;
+const pick = <T,>(items: readonly T[]): T => items[Math.floor(rand() * items.length)]!;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 const PEOPLE = [

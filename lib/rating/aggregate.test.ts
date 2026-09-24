@@ -13,6 +13,12 @@ describe("expandScoutingVotes", () => {
     expect(result.get("sprint_speed")).toEqual([{ raterId: "r1", attribute: "sprint_speed", value: 8, createdAt: now, raterRole: "player" }]);
   });
 
+  it("expands a goalkeeper quick vote to its single gk_* attribute", () => {
+    const votes: ScoutingVoteInput[] = [{ raterId: "r1", attribute: "ref", value: 9, createdAt: now, raterRole: "player" }];
+    const result = expandScoutingVotes(votes);
+    expect([...result.keys()]).toEqual(["gk_reflexes"]);
+  });
+
   it("passes a detailed-mode vote through unchanged", () => {
     const votes: ScoutingVoteInput[] = [{ raterId: "r1", attribute: "finishing", value: 7, createdAt: now, raterRole: "player" }];
     const result = expandScoutingVotes(votes);

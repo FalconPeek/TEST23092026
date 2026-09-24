@@ -47,6 +47,25 @@ describe("submitScoutingVotes", () => {
     expect(mockRpc).not.toHaveBeenCalled();
   });
 
+  it("accepts goalkeeper quick keys (the RPC decides whether the target is a keeper)", async () => {
+    mockGetUserId.mockResolvedValue(USER_ID);
+    mockRpc.mockResolvedValue({ data: null, error: null });
+
+    const result = await submitScoutingVotes({
+      groupId: GROUP_ID,
+      targetPlayerId: TARGET_ID,
+      mode: "quick",
+      votes: { div: 8, ref: 9, pac: 6 },
+    });
+
+    expect(result.ok).toBe(true);
+    expect(mockRpc).toHaveBeenCalledWith("submit_scouting_votes", {
+      p_target_player_id: TARGET_ID,
+      p_mode: "quick",
+      p_votes: { div: 8, ref: 9, pac: 6 },
+    });
+  });
+
   it("never calls rpc for a vote value out of range", async () => {
     mockGetUserId.mockResolvedValue(USER_ID);
 

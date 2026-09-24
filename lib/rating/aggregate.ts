@@ -3,14 +3,14 @@
 // See CLAUDE.md "Rating system" step-by-step spec.
 
 import type { RatingSettings } from "@/lib/settings/group";
-import { type AttributeKey, type OutfieldFaceStat, subAttributesOfFaceStat } from "./attributes";
+import { type AttributeKey, type ScoutingVoteKey, quickVoteAttributes } from "./attributes";
 import { mad, median, recencyWeight } from "./stats";
 import { collusionKey } from "./rater-stats";
 
 export interface ScoutingVoteInput {
   raterId: string;
   /** Either a sub-attribute key (detailed mode) or a face-stat code (quick mode). */
-  attribute: AttributeKey | OutfieldFaceStat;
+  attribute: ScoutingVoteKey;
   /** Raw 1-10 vote. */
   value: number;
   createdAt: Date;
@@ -31,11 +31,7 @@ export function expandScoutingVotes(votes: ScoutingVoteInput[]): Map<AttributeKe
   };
 
   for (const vote of votes) {
-    if ((["pac", "sho", "pas", "dri", "def", "phy"] as const).includes(vote.attribute as OutfieldFaceStat)) {
-      for (const sub of subAttributesOfFaceStat(vote.attribute as OutfieldFaceStat)) push(sub, vote);
-    } else {
-      push(vote.attribute as AttributeKey, vote);
-    }
+    for (const attr of quickVoteAttributes(vote.attribute)) push(attr, vote);
   }
   return byAttribute;
 }

@@ -93,6 +93,40 @@ export function subAttributesOfFaceStat(faceStat: OutfieldFaceStat): OutfieldAtt
   return Object.keys(FACE_STAT_WEIGHTS[faceStat]) as OutfieldAttributeKey[];
 }
 
+/** Quick-mode keys for goalkeeper targets, each mapping 1:1 to a gk_* attribute (SPD isn't
+ * votable: it's derived from PAC). */
+export const GK_QUICK_KEYS = {
+  div: "gk_diving",
+  han: "gk_handling",
+  kic: "gk_kicking",
+  ref: "gk_reflexes",
+  pos: "gk_positioning",
+} as const satisfies Partial<Record<GkFaceStat, GkAttributeKey>>;
+export type GkQuickKey = keyof typeof GK_QUICK_KEYS;
+
+export function isGkQuickKey(value: string): value is GkQuickKey {
+  return Object.hasOwn(GK_QUICK_KEYS, value);
+}
+
+/** Every key a quick-mode ballot may carry: the 6 outfield face stats plus, for GK targets, the
+ * 5 GK quick keys. */
+/** Any key a stored scouting ballot row can carry. */
+export type ScoutingVoteKey = AttributeKey | OutfieldFaceStat | GkQuickKey;
+
+export const QUICK_VOTE_KEYS = [...OUTFIELD_FACE_STATS, ...(Object.keys(GK_QUICK_KEYS) as GkQuickKey[])] as const;
+
+/**
+ * The sub-attributes a stored scouting ballot row affects: a quick outfield face stat expands to
+ * every sub-attribute feeding it, a quick GK key to its single gk_* attribute, and a detailed
+ * ballot to itself. Returns [] for an unknown key.
+ */
+export function quickVoteAttributes(key: string): AttributeKey[] {
+  if ((OUTFIELD_FACE_STATS as readonly string[]).includes(key)) return subAttributesOfFaceStat(key as OutfieldFaceStat);
+  if (isGkQuickKey(key)) return [GK_QUICK_KEYS[key]];
+  if (isAttributeKey(key)) return [key];
+  return [];
+}
+
 /** Compute a single outfield face stat (1-99) from a complete attribute value map. */
 export function computeFaceStat(
   faceStat: OutfieldFaceStat,

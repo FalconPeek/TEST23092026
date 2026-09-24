@@ -10,6 +10,7 @@ import {
   computeOutfieldFaceStats,
   isAttributeKey,
   isGkAttributeKey,
+  quickVoteAttributes,
   subAttributesOfFaceStat,
 } from "./attributes";
 
@@ -73,5 +74,26 @@ describe("face stat weights", () => {
   it("computeGkFaceStats falls back to group mean when attributes are missing (0 votes)", () => {
     const result = computeGkFaceStats({}, 50);
     expect(result).toEqual({ div: 50, han: 50, kic: 50, ref: 50, pos: 50, spd: 50 });
+  });
+});
+
+describe("quickVoteAttributes", () => {
+  it("expands an outfield face stat to its sub-attributes", () => {
+    expect(new Set(quickVoteAttributes("pac"))).toEqual(new Set(["sprint_speed", "acceleration"]));
+  });
+
+  it("maps each goalkeeper quick key 1:1 to its gk_* attribute", () => {
+    expect(quickVoteAttributes("div")).toEqual(["gk_diving"]);
+    expect(quickVoteAttributes("han")).toEqual(["gk_handling"]);
+    expect(quickVoteAttributes("kic")).toEqual(["gk_kicking"]);
+    expect(quickVoteAttributes("ref")).toEqual(["gk_reflexes"]);
+    expect(quickVoteAttributes("pos")).toEqual(["gk_positioning"]);
+  });
+
+  it("passes detailed keys through and ignores unknown keys", () => {
+    expect(quickVoteAttributes("finishing")).toEqual(["finishing"]);
+    expect(quickVoteAttributes("gk_diving")).toEqual(["gk_diving"]);
+    expect(quickVoteAttributes("spd")).toEqual([]);
+    expect(quickVoteAttributes("nope")).toEqual([]);
   });
 });

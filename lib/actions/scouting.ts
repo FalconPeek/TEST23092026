@@ -7,7 +7,7 @@ import { createClient, getUserId } from "@/lib/supabase/server";
 import { ok, fail, type ActionResult } from "@/lib/actions/result";
 import { mapDbError } from "@/lib/actions/errors";
 import { recomputeNow } from "@/lib/server/recompute-now";
-import { ALL_ATTRIBUTES, OUTFIELD_FACE_STATS } from "@/lib/rating/attributes";
+import { ALL_ATTRIBUTES, QUICK_VOTE_KEYS } from "@/lib/rating/attributes";
 import { PLAYSTYLES } from "@/lib/rating/playstyles";
 import type { Json } from "@/lib/supabase/database.types";
 
@@ -34,7 +34,8 @@ const submitScoutingVotesSchema = z
       groupId: uuid,
       targetPlayerId: uuid,
       mode: z.literal("quick"),
-      votes: z.partialRecord(z.enum(OUTFIELD_FACE_STATS), voteValue),
+      // GK quick keys are only valid for keeper targets; the RPC enforces that per target.
+      votes: z.partialRecord(z.enum(QUICK_VOTE_KEYS), voteValue),
     }),
     z.object({
       groupId: uuid,
