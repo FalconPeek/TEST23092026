@@ -25,6 +25,11 @@ function unwrap<T>(result: { data: T | null; error: { message: string } | null }
   return result.data as NonNullable<T>;
 }
 
+/** For RPCs that return nothing: only the error matters. */
+function run(result: { error: { message: string } | null }, what: string): void {
+  if (result.error) throw new Error(`${what}: ${result.error.message}`);
+}
+
 test.beforeAll(async () => {
   owner = await createTestUser("admin");
   players = await Promise.all(["uno", "dos", "tres"].map((label) => createTestUser(label)));
@@ -34,7 +39,7 @@ test.beforeAll(async () => {
   const [invite] = unwrap(await ownerDb.rpc("create_invite", { p_group_id: groupId, p_role: "member" }), "create_invite");
   for (const player of players) {
     const db = await userClient(player);
-    unwrap(await db.rpc("accept_invite", { p_code: invite!.code }), "accept_invite");
+    run(await db.rpc("accept_invite", { p_code: invite!.code }), "accept_invite");
   }
 
   const rows = unwrap(await ownerDb.from("players").select("id, user_id").eq("group_id", groupId), "players");
@@ -54,7 +59,7 @@ test("admin schedules a match from the UI", async ({ page }) => {
 
 test("lineup is set and the match moves to reporting", async () => {
   const pid = (u: TestUser) => playerIdByUser.get(u.id)!;
-  unwrap(
+  run(
     await ownerDb.rpc("set_match_lineup", {
       p_match_id: matchId,
       p_team1: { name: "Blancos", players: [{ player_id: pid(owner) }, { player_id: pid(players[0]!) }] },
@@ -63,7 +68,7 @@ test("lineup is set and the match moves to reporting", async () => {
     }),
     "set_match_lineup",
   );
-  unwrap(await ownerDb.rpc("start_reporting", { p_match_id: matchId }), "start_reporting");
+  run(await ownerDb.rpc("start_reporting", { p_match_id: matchId }), "start_reporting");
 });
 
 test("a player reports the score and rates everyone from the UI", async ({ page }) => {
@@ -95,9 +100,9 @@ test("the other side agrees on the score and the rest rate", async () => {
   for (const rater of [owner, players[1]!, players[2]!]) {
     const db = rater === owner ? ownerDb : await userClient(rater);
     if (rater === players[1]) {
-      unwrap(await db.rpc("submit_score_report", { p_match_id: matchId, p_team1_goals: 2, p_team2_goals: 1 }), "score");
+      run(await db.rpc("submit_score_report", { p_match_id: matchId, p_team1_goals: 2, p_team2_goals: 1 }), "score");
       // Rule A needs the goals attributed to scorers to add up to the score.
-      unwrap(
+      run(
         await db.rpc("submit_stat_reports", {
           p_match_id: matchId,
           p_reports: [
@@ -112,12 +117,12 @@ test("the other side agrees on the score and the rest rate", async () => {
     const ratings = everyone
       .filter((u) => u !== rater)
       .map((u) => ({ target_player_id: pid(u), rating: u === players[0] ? 9 : 7, standout_attributes: [] }));
-    unwrap(await db.rpc("submit_match_ratings", { p_match_id: matchId, p_ratings: ratings }), "ratings");
+    run(await db.rpc("submit_match_ratings", { p_match_id: matchId, p_ratings: ratings }), "ratings");
   }
 });
 
 test("closing the match finalizes it through the cron route", async ({ request }) => {
-  unwrap(await ownerDb.rpc("request_finalize", { p_match_id: matchId }), "request_finalize");
+  run(await ownerDb.rpc("request_finalize", { p_match_id: matchId }), "request_finalize");
 
   const unauthorized = await request.post("/api/cron/finalize");
   expect(unauthorized.status()).toBe(401);
@@ -163,4 +168,51 @@ test("closing the match finalizes it through the cron route", async ({ request }
 test("the matches list shows the final score", async ({ page }) => {
   await loginViaUi(page, owner, `/g/${groupId}/partidos`);
   await expect(page.getByText(/Blancos\s+2 - 1\s+Negros/)).toBeVisible();
+});
+
+test("a score-only match finalizes and the admin assigns the goals later", async ({ request }) => {
+  const pid = (u: TestUser) => playerIdByUser.get(u.id)!;
+  const secondMatchId = unwrap(
+    await ownerDb.rpc("create_match", { p_group_id: groupId, p_scheduled_at: new Date().toISOString(), p_team_size: 5 }),
+    "create_match",
+  );
+  run(
+    await ownerDb.rpc("set_match_lineup", {
+      p_match_id: secondMatchId,
+      p_team1: { name: "Blancos", players: [{ player_id: pid(owner) }, { player_id: pid(players[0]!) }] },
+      p_team2: { name: "Negros", players: [{ player_id: pid(players[1]!) }, { player_id: pid(players[2]!) }] },
+      p_spectators: [],
+    }),
+    "set_match_lineup",
+  );
+  run(await ownerDb.rpc("start_reporting", { p_match_id: secondMatchId }), "start_reporting");
+  run(await ownerDb.rpc("submit_score_report", { p_match_id: secondMatchId, p_team1_goals: 1, p_team2_goals: 0 }), "score 1");
+  const side2 = await userClient(players[1]!);
+  run(await side2.rpc("submit_score_report", { p_match_id: secondMatchId, p_team1_goals: 1, p_team2_goals: 0 }), "score 2");
+  run(await ownerDb.rpc("request_finalize", { p_match_id: secondMatchId }), "request_finalize");
+
+  const response = await request.post("/api/cron/finalize", { headers: { Authorization: `Bearer ${env.cronSecret}` } });
+  expect(response.status()).toBe(200);
+
+  const admin = adminClient();
+  const { data: match } = await admin.from("matches").select("status").eq("id", secondMatchId).single();
+  expect(match?.status).toBe("finalized");
+
+  // Too many goals for the score is rejected; assigning the one goal works.
+  const tooMany = await ownerDb.rpc("amend_match_stats", {
+    p_match_id: secondMatchId,
+    p_stats: [{ subject_player_id: pid(players[0]!), goals: 2 }],
+  });
+  expect(tooMany.error?.message).toContain("more attributed goals than its score");
+  run(
+    await ownerDb.rpc("amend_match_stats", { p_match_id: secondMatchId, p_stats: [{ subject_player_id: pid(players[0]!), goals: 1 }] }),
+    "amend_match_stats",
+  );
+  const { data: scorer } = await admin
+    .from("match_stats")
+    .select("goals")
+    .eq("match_id", secondMatchId)
+    .eq("player_id", pid(players[0]!))
+    .single();
+  expect(scorer?.goals).toBe(1);
 });

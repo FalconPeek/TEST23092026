@@ -8,7 +8,11 @@ import { ok, fail, type ActionResult } from "@/lib/actions/result";
 import { mapDbError } from "@/lib/actions/errors";
 import { ALL_ATTRIBUTES } from "@/lib/rating/attributes";
 import { POSITIONS, type PositionCode } from "@/lib/rating/positions";
-import { notifyMatchScheduledBestEffort, notifyReportingStartedBestEffort } from "@/lib/server/match-notify";
+import {
+  awardAmendmentBadgesBestEffort,
+  notifyMatchScheduledBestEffort,
+  notifyReportingStartedBestEffort,
+} from "@/lib/server/match-notify";
 import type { Json } from "@/lib/supabase/database.types";
 
 const uuid = z.uuid();
@@ -371,5 +375,69 @@ export async function resolveDispute(input: {
   if (error) return fail(mapDbError(error));
 
   revalidatePath(`/g/${parsed.data.groupId}/partidos/${parsed.data.matchId}`);
+  return ok(undefined);
+}
+
+// --- amendMatchStats (amend_match_stats) -----------------------------------------------------
+
+const amendStatSchema = z.object({
+  subjectPlayerId: uuid,
+  goals: z.int().min(0).max(30).optional(),
+  assists: z.int().min(0).max(30).optional(),
+  ownGoals: z.int().min(0).max(30).optional(),
+  saves: z.int().min(0).max(99).optional(),
+});
+
+const amendMatchStatsSchema = z
+  .object({
+    groupId: uuid,
+    matchId: uuid,
+    stats: z.array(amendStatSchema).min(1),
+  })
+  .refine((v) => uniqueBy(v.stats, (s) => s.subjectPlayerId), { message: "duplicate subject", path: ["stats"] });
+
+/** Admin assigns previously unattributed goals (or fixes assists/own goals/saves) of a finalized
+ * match. The RPC enforces admin + finalized + "never more than the official score"; newly earned
+ * badges are awarded best-effort afterwards. */
+export async function amendMatchStats(input: {
+  groupId: string;
+  matchId: string;
+  stats: { subjectPlayerId: string; goals?: number; assists?: number; ownGoals?: number; saves?: number }[];
+}): Promise<ActionResult<void>> {
+  const parsed = amendMatchStatsSchema.safeParse(input);
+  if (!parsed.success) return fail(es.errors.validation);
+
+  const userId = await getUserId();
+  if (!userId) return fail(es.errors.unauthenticated);
+
+  const supabase = await createClient();
+  const subjectIds = parsed.data.stats.map((s) => s.subjectPlayerId);
+  // Snapshot before the change so badge evaluation knows what the amendment itself crossed.
+  const { data: beforeRows } = await supabase
+    .from("match_stats")
+    .select("player_id, goals, assists")
+    .eq("match_id", parsed.data.matchId)
+    .in("player_id", subjectIds);
+  const beforeByPlayer = new Map((beforeRows ?? []).map((r) => [r.player_id, { goals: r.goals, assists: r.assists }]));
+
+  const { error } = await supabase.rpc("amend_match_stats", {
+    p_match_id: parsed.data.matchId,
+    p_stats: parsed.data.stats.map((s) => ({
+      subject_player_id: s.subjectPlayerId,
+      goals: s.goals,
+      assists: s.assists,
+      own_goals: s.ownGoals,
+      saves: s.saves,
+    })) as unknown as Json,
+  });
+  if (error) return fail(mapDbError(error));
+
+  await awardAmendmentBadgesBestEffort(
+    parsed.data.matchId,
+    subjectIds.map((playerId) => ({ playerId, before: beforeByPlayer.get(playerId) ?? { goals: 0, assists: 0 } })),
+  );
+
+  revalidatePath(`/g/${parsed.data.groupId}/partidos/${parsed.data.matchId}`);
+  for (const playerId of subjectIds) revalidatePath(`/g/${parsed.data.groupId}/jugadores/${playerId}`);
   return ok(undefined);
 }

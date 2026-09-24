@@ -4,10 +4,23 @@ import { es } from "@/messages/es";
 const mockRpc = vi.fn();
 const mockGetUserId = vi.fn();
 const mockRevalidatePath = vi.fn();
+const mockAwardAmendment = vi.fn();
+let mockBeforeRows: { player_id: string; goals: number; assists: number }[] = [];
+
+// Minimal query builder for the pre-amendment snapshot: .from().select().eq().in() resolves rows.
+const mockFrom = () => {
+  const builder = { select: () => builder, eq: () => builder, in: async () => ({ data: mockBeforeRows, error: null }) };
+  return builder;
+};
 
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(async () => ({ rpc: mockRpc })),
+  createClient: vi.fn(async () => ({ rpc: mockRpc, from: mockFrom })),
   getUserId: () => mockGetUserId(),
+}));
+
+vi.mock("@/lib/server/match-notify", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/server/match-notify")>()),
+  awardAmendmentBadgesBestEffort: (...args: unknown[]) => mockAwardAmendment(...args),
 }));
 
 vi.mock("next/cache", () => ({
@@ -23,6 +36,7 @@ const {
   submitStatReports,
   submitMatchRatings,
   resolveDispute,
+  amendMatchStats,
 } = await import("./matches");
 
 const GROUP_ID = "11111111-1111-4111-8111-111111111111";
@@ -36,6 +50,8 @@ beforeEach(() => {
   mockRpc.mockReset();
   mockGetUserId.mockReset();
   mockRevalidatePath.mockReset();
+  mockAwardAmendment.mockReset();
+  mockBeforeRows = [];
 });
 
 describe("createMatch", () => {
@@ -383,5 +399,62 @@ describe("resolveDispute", () => {
     const result = await resolveDispute({ groupId: GROUP_ID, matchId: MATCH_ID, team1Goals: 2, team2Goals: 1 });
 
     expect(result).toEqual({ ok: false, error: es.errors.validation });
+  });
+});
+
+describe("amendMatchStats", () => {
+  it("rejects duplicate subjects and empty amendments without calling rpc", async () => {
+    mockGetUserId.mockResolvedValue(USER_ID);
+    expect(
+      await amendMatchStats({ groupId: GROUP_ID, matchId: MATCH_ID, stats: [{ subjectPlayerId: PLAYER_1, goals: 1 }, { subjectPlayerId: PLAYER_1, goals: 2 }] }),
+    ).toEqual({ ok: false, error: es.errors.validation });
+    expect(await amendMatchStats({ groupId: GROUP_ID, matchId: MATCH_ID, stats: [] })).toEqual({ ok: false, error: es.errors.validation });
+    expect(mockRpc).not.toHaveBeenCalled();
+  });
+
+  it("returns unauthenticated without calling rpc", async () => {
+    mockGetUserId.mockResolvedValue(null);
+    expect(await amendMatchStats({ groupId: GROUP_ID, matchId: MATCH_ID, stats: [{ subjectPlayerId: PLAYER_1, goals: 1 }] })).toEqual({
+      ok: false,
+      error: es.errors.unauthenticated,
+    });
+    expect(mockRpc).not.toHaveBeenCalled();
+  });
+
+  it("sends snake_case stats and awards badges with the pre-amendment values", async () => {
+    mockGetUserId.mockResolvedValue(USER_ID);
+    mockRpc.mockResolvedValue({ data: null, error: null });
+    mockBeforeRows = [{ player_id: PLAYER_1, goals: 1, assists: 0 }];
+
+    const result = await amendMatchStats({
+      groupId: GROUP_ID,
+      matchId: MATCH_ID,
+      stats: [{ subjectPlayerId: PLAYER_1, goals: 3 }, { subjectPlayerId: PLAYER_2, assists: 1 }],
+    });
+
+    expect(result).toEqual({ ok: true, data: undefined });
+    expect(mockRpc).toHaveBeenCalledWith("amend_match_stats", {
+      p_match_id: MATCH_ID,
+      p_stats: [
+        { subject_player_id: PLAYER_1, goals: 3, assists: undefined, own_goals: undefined, saves: undefined },
+        { subject_player_id: PLAYER_2, goals: undefined, assists: 1, own_goals: undefined, saves: undefined },
+      ],
+    });
+    expect(mockAwardAmendment).toHaveBeenCalledWith(MATCH_ID, [
+      { playerId: PLAYER_1, before: { goals: 1, assists: 0 } },
+      { playerId: PLAYER_2, before: { goals: 0, assists: 0 } },
+    ]);
+    expect(mockRevalidatePath).toHaveBeenCalledWith(`/g/${GROUP_ID}/partidos/${MATCH_ID}`);
+    expect(mockRevalidatePath).toHaveBeenCalledWith(`/g/${GROUP_ID}/jugadores/${PLAYER_1}`);
+  });
+
+  it("maps RPC errors and awards nothing", async () => {
+    mockGetUserId.mockResolvedValue(USER_ID);
+    mockRpc.mockResolvedValue({ data: null, error: { message: "PICADO_FORBIDDEN: only group admins can amend match stats" } });
+    expect(await amendMatchStats({ groupId: GROUP_ID, matchId: MATCH_ID, stats: [{ subjectPlayerId: PLAYER_1, goals: 1 }] })).toEqual({
+      ok: false,
+      error: es.errors.forbidden,
+    });
+    expect(mockAwardAmendment).not.toHaveBeenCalled();
   });
 });

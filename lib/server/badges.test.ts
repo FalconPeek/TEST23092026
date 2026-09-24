@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { BadgeAward, BadgeCode, MatchBadgeHistoryEntry } from "@/lib/badges/engine";
-import { awardCardBadges, awardMatchBadges, awardMatchBadgesForPlayer, awardTournamentBadges } from "./badges";
+import { awardAmendmentBadges, awardCardBadges, awardMatchBadges, awardMatchBadgesForPlayer, awardTournamentBadges } from "./badges";
 import type { BadgesRepo } from "./badges-repo";
 
 class FakeBadgesRepo implements BadgesRepo {
@@ -126,5 +126,31 @@ describe("awardCardBadges", () => {
   it("respects badges_enabled = false", async () => {
     const repo = new FakeBadgesRepo();
     expect(await awardCardBadges(repo, "p1", "gold", false, false)).toEqual([]);
+  });
+});
+
+describe("awardAmendmentBadges", () => {
+  it("awards and persists badges earned through an amendment, per amended player", async () => {
+    const repo = new FakeBadgesRepo();
+    repo.history.set("p1", [entry({ matchId: "m1", goals: 3 })]);
+    repo.history.set("p2", [entry({ matchId: "m1", goals: 0 })]);
+    const awards = await awardAmendmentBadges(
+      repo,
+      "m1",
+      [
+        { playerId: "p1", before: { goals: 0, assists: 0 } },
+        { playerId: "p2", before: { goals: 0, assists: 0 } },
+      ],
+      true,
+    );
+    expect(awards.map((a) => `${a.playerId}:${a.code}`).sort()).toEqual(["p1:first_goal", "p1:hat_trick"]);
+    expect(repo.saved.map((s) => s.playerId)).toEqual(["p1"]);
+  });
+
+  it("does nothing when badges are disabled", async () => {
+    const repo = new FakeBadgesRepo();
+    repo.history.set("p1", [entry({ matchId: "m1", goals: 3 })]);
+    expect(await awardAmendmentBadges(repo, "m1", [{ playerId: "p1", before: { goals: 0, assists: 0 } }], false)).toEqual([]);
+    expect(repo.saved).toEqual([]);
   });
 });

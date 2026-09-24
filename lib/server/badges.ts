@@ -8,6 +8,7 @@ import "server-only";
 import {
   type BadgeCode,
   type CardTier,
+  evaluateAmendmentBadges,
   evaluateCardBadges,
   evaluateMatchBadges,
   evaluateTournamentBadges,
@@ -90,4 +91,33 @@ export async function awardCardBadges(
 
   await repo.saveAwards(playerId, awards);
   return awards.map((a) => ({ playerId, code: a.code }));
+}
+
+export interface StatAmendment {
+  playerId: string;
+  /** Goals/assists in the amended match before the amendment. */
+  before: { goals: number; assists: number };
+}
+
+/** Awards badges newly earned because an admin assigned goals/assists of a finalized match
+ * (see evaluateAmendmentBadges). Assumes the amendment is already persisted. */
+export async function awardAmendmentBadges(
+  repo: BadgesRepo,
+  matchId: string,
+  amendments: readonly StatAmendment[],
+  badgesEnabled: boolean,
+): Promise<PlayerBadgeAward[]> {
+  if (!badgesEnabled) return [];
+  const out: PlayerBadgeAward[] = [];
+  for (const { playerId, before } of amendments) {
+    const [history, existingBadges] = await Promise.all([
+      repo.loadPlayerMatchHistory(playerId),
+      repo.loadExistingBadgeCodes(playerId),
+    ]);
+    const awards = evaluateAmendmentBadges({ badgesEnabled, matchId, history, before, existingBadges });
+    if (awards.length === 0) continue;
+    await repo.saveAwards(playerId, awards);
+    out.push(...awards.map((a) => ({ playerId, code: a.code, matchId })));
+  }
+  return out;
 }

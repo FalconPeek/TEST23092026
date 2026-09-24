@@ -68,10 +68,27 @@ describe("enforceConsistency", () => {
     expect(result.stats.find((s) => s.playerId === "p2")!.goals).toBe(1);
   });
 
-  it("disputes when claims fall short of the official score (nothing to drop that would help)", () => {
+  it("accepts claims that fall short of the official score (the rest stay unattributed)", () => {
     const stats = [claim("p1", { goals: 1, nReports: 2 }), claim("p2", { nReports: 1 }), claim("p3", { nReports: 1 })];
     const result = enforceConsistency(stats, twoSideRoster, { team1Goals: 5, team2Goals: 0 });
-    expect(result.reasons).toEqual([{ code: "GOALS_INCONSISTENT", side: 1, claimedTotal: 1, officialScore: 5 }]);
+    expect(result.reasons).toEqual([]);
+    expect(result.adjustments).toEqual([]);
+    expect(result.stats.find((s) => s.playerId === "p1")!.goals).toBe(1);
+  });
+
+  it("caps assists by the official score, not by the attributed goals", () => {
+    // Side 1 won 3-0 but only 1 goal was attributed; 2 assists are still possible.
+    const stats = [claim("p1", { goals: 1, assists: 2, nReports: 2 }), claim("p2", { nReports: 1 }), claim("p3", { nReports: 1 })];
+    const result = enforceConsistency(stats, twoSideRoster, { team1Goals: 3, team2Goals: 0 });
+    expect(result.reasons).toEqual([]);
+    expect(result.stats.find((s) => s.playerId === "p1")!.assists).toBe(2);
+  });
+
+  it("does not count the opponent's own goals toward the assists cap", () => {
+    // Side 1's single goal was an own goal by p3, so side 1 can have no assists.
+    const stats = [claim("p1", { assists: 1, nReports: 2 }), claim("p2", { nReports: 1 }), claim("p3", { ownGoals: 1, nReports: 3 })];
+    const result = enforceConsistency(stats, twoSideRoster, { team1Goals: 1, team2Goals: 0 });
+    expect(result.stats.find((s) => s.playerId === "p1")!.assists).toBe(0);
   });
 
   it("counts an opponent's own goals toward a side's official score", () => {

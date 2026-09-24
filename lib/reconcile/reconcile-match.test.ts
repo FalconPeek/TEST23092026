@@ -27,11 +27,11 @@ describe("reconcileMatch", () => {
     }
   });
 
-  it("reconciles a fully-consistent match end to end (0 stat reports = 0-0 for goals, spectator excluded)", () => {
+  it("finalizes a score-only match: with no stat reports every goal stays unattributed", () => {
     const result = reconcileMatch({ roster, scoreReports: agreedScore, statReports: [] });
-    expect(result.status).toBe("disputed"); // no goal reports at all can't back up a 2-1 score
-    if (result.status === "disputed") {
-      expect(result.reasons.some((r) => r.code === "GOALS_INCONSISTENT")).toBe(true);
+    expect(result.status).toBe("ok");
+    if (result.status === "ok") {
+      expect(result.stats.every((s) => s.goals === 0 && s.assists === 0)).toBe(true);
     }
   });
 

@@ -1523,6 +1523,10 @@ export type Database = {
         }
         Returns: string
       }
+      amend_match_stats: {
+        Args: { p_match_id: string; p_stats: Json }
+        Returns: undefined
+      }
       append_swiss_round: {
         Args: {
           p_matches: Json

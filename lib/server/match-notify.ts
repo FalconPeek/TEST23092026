@@ -3,7 +3,10 @@
 // lib/server/tournament-generated.ts's shape: each function makes its own admin client (writes to
 // notifications/push_subscriptions only grant DML to service_role) and never throws.
 import "server-only";
-import { matchScheduledPayload, ratingPendingPayload, reportPendingPayload } from "@/lib/notifications/templates";
+import { badgeAwardedPayload, matchScheduledPayload, ratingPendingPayload, reportPendingPayload } from "@/lib/notifications/templates";
+import { awardAmendmentBadges, type StatAmendment } from "@/lib/server/badges";
+import { createSupabaseBadgesRepo } from "@/lib/server/badges-repo";
+import { parseGroupSettings } from "@/lib/settings/group";
 import { notify } from "@/lib/server/notifications";
 import { createSupabaseNotificationsRepo } from "@/lib/server/notifications-repo";
 import { loadUserIdsByPlayer } from "@/lib/server/player-users";
@@ -57,5 +60,40 @@ export async function notifyReportingStartedBestEffort(matchId: string, groupId:
     await notify(notificationsRepo, { userIds, groupId, kind: "rating_pending", payload: ratingPendingPayload({ url }) });
   } catch {
     // best-effort -- see doc comment above.
+  }
+}
+
+/** After an admin assigns goals/assists of a finalized match (amend_match_stats): award any newly
+ * earned badges and notify their owners. The group comes from the DB, never from the caller. */
+export async function awardAmendmentBadgesBestEffort(matchId: string, amendments: StatAmendment[]): Promise<void> {
+  try {
+    if (amendments.length === 0) return;
+    const admin = createAdminClient();
+    const { data: matchRow, error: matchError } = await admin
+      .from("matches")
+      .select("group_id, groups(settings)")
+      .eq("id", matchId)
+      .maybeSingle();
+    if (matchError) throw matchError;
+    if (!matchRow) return;
+    const settings = parseGroupSettings(matchRow.groups?.settings);
+
+    const awards = await awardAmendmentBadges(createSupabaseBadgesRepo(admin), matchId, amendments, settings.badges_enabled);
+    if (awards.length === 0) return;
+
+    const userIdByPlayer = await loadUserIdsByPlayer(admin, awards.map((a) => a.playerId));
+    const notificationsRepo = createSupabaseNotificationsRepo(admin);
+    for (const award of awards) {
+      const userId = userIdByPlayer.get(award.playerId);
+      if (!userId) continue; // guest: no account to notify
+      await notify(notificationsRepo, {
+        userIds: [userId],
+        groupId: matchRow.group_id,
+        kind: "badge_awarded",
+        payload: badgeAwardedPayload({ badgeCode: award.code, url: `/g/${matchRow.group_id}/jugadores/${award.playerId}` }),
+      });
+    }
+  } catch {
+    // best-effort -- see doc comment at the top of this file.
   }
 }

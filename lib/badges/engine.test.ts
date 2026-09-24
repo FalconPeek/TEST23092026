@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   type BadgeCode,
   type MatchBadgeHistoryEntry,
+  evaluateAmendmentBadges,
   evaluateCardBadges,
   evaluateMatchBadges,
   evaluateTournamentBadges,
@@ -286,5 +287,57 @@ describe("evaluateCardBadges", () => {
       existingBadges: NO_BADGES,
     });
     expect(awards.map((a) => a.code).sort()).toEqual(["gold_card", "scout_10"]);
+  });
+});
+
+describe("evaluateAmendmentBadges", () => {
+  const amended = (goals: number, assists = 0) => entry({ matchId: "m2", goals, assists });
+
+  it("awards first_goal when an amendment gives a player their first goal", () => {
+    const awards = evaluateAmendmentBadges({
+      badgesEnabled: true,
+      matchId: "m2",
+      history: [entry({ matchId: "m1" }), amended(1)],
+      before: { goals: 0, assists: 0 },
+      existingBadges: NO_BADGES,
+    });
+    expect(awards).toEqual([{ code: "first_goal", matchId: "m2", increment: false }]);
+  });
+
+  it("awards hat_trick / assist_king only when the amendment crosses 3 in that match", () => {
+    const crossing = evaluateAmendmentBadges({
+      badgesEnabled: true,
+      matchId: "m2",
+      history: [amended(3, 3)],
+      before: { goals: 1, assists: 2 },
+      existingBadges: new Set(["first_goal"]),
+    });
+    expect(crossing.map((a) => a.code).sort()).toEqual(["assist_king", "hat_trick"]);
+
+    const alreadyThere = evaluateAmendmentBadges({
+      badgesEnabled: true,
+      matchId: "m2",
+      history: [amended(4, 3)],
+      before: { goals: 3, assists: 3 },
+      existingBadges: new Set(["first_goal"]),
+    });
+    expect(alreadyThere).toEqual([]);
+  });
+
+  it("awards goals_25 when the new career total reaches 25, never twice", () => {
+    const history = [entry({ matchId: "m1", goals: 24 }), amended(1)];
+    const input = { badgesEnabled: true, matchId: "m2", history, before: { goals: 0, assists: 0 } };
+    expect(evaluateAmendmentBadges({ ...input, existingBadges: new Set(["first_goal"]) })).toContainEqual({
+      code: "goals_25",
+      matchId: "m2",
+      increment: false,
+    });
+    expect(evaluateAmendmentBadges({ ...input, existingBadges: new Set(["first_goal", "goals_25"]) })).toEqual([]);
+  });
+
+  it("does nothing when badges are disabled or the match is not in the history", () => {
+    const base = { matchId: "m2", before: { goals: 0, assists: 0 }, existingBadges: NO_BADGES };
+    expect(evaluateAmendmentBadges({ ...base, badgesEnabled: false, history: [amended(3)] })).toEqual([]);
+    expect(evaluateAmendmentBadges({ ...base, badgesEnabled: true, history: [entry({ matchId: "m1", goals: 3 })] })).toEqual([]);
   });
 });

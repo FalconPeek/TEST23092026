@@ -102,10 +102,8 @@ export function enforceConsistency(stats: ReconciledPlayerStats[], roster: Roste
 
     const claimedTotal = goalClaims.reduce((a, c) => a + c.value, 0) + ownGoalClaims.reduce((a, c) => a + c.value, 0);
 
-    if (claimedTotal < officialScore) {
-      reasons.push({ code: "GOALS_INCONSISTENT", side, claimedTotal, officialScore });
-      continue;
-    }
+    // Under-attribution is fine: the agreed score is authoritative and the missing goals simply stay
+    // unattributed (an admin can assign them after finalization). Only over-claims are a conflict.
     if (claimedTotal > officialScore) {
       const { adjustments: dropped, remaining } = dropExcess([...goalClaims, ...ownGoalClaims], claimedTotal - officialScore);
       for (const [key, value] of dropped) {
@@ -118,10 +116,15 @@ export function enforceConsistency(stats: ReconciledPlayerStats[], roster: Roste
     }
   }
 
-  // --- assists <= goals, per side (using each side's own final goals total) ------------------
+  // --- assists <= goals, per side ---------------------------------------------------------------
+  // The cap is the side's official score minus the opponent's own goals (an own goal has no
+  // assist). It isn't the attributed goals total, since goals may be left unattributed.
   for (const side of [1, 2] as Side[]) {
+    const otherSide: Side = side === 1 ? 2 : 1;
     const sidePlayers = playersOfSide(side);
-    const goalsTotal = sidePlayers.reduce((a, p) => a + p.goals, 0);
+    const opponentOwnGoals = playersOfSide(otherSide).reduce((a, p) => a + p.ownGoals, 0);
+    const officialScore = side === 1 ? score.team1Goals : score.team2Goals;
+    const goalsTotal = Math.max(0, officialScore - opponentOwnGoals);
     const assistClaims: Claim[] = sidePlayers
       .filter((p) => p.assists > 0)
       .map((p) => ({ playerId: p.playerId, field: "assists" as const, value: p.assists, support: p.nReports }));

@@ -161,6 +161,41 @@ export function evaluateTournamentBadges(input: EvaluateTournamentBadgesInput): 
   }));
 }
 
+export interface EvaluateAmendmentBadgesInput {
+  badgesEnabled: boolean;
+  /** The amended match. */
+  matchId: string;
+  /** The player's finalized-match history AFTER the amendment (any order). */
+  history: readonly MatchBadgeHistoryEntry[];
+  /** The player's goals/assists in the amended match BEFORE the amendment. */
+  before: { goals: number; assists: number };
+  existingBadges: ReadonlySet<BadgeCode>;
+}
+
+/**
+ * An admin assigned previously unattributed goals/assists of a finalized match. Career milestones
+ * are checked against the new totals (a one-time badge can't be double-awarded thanks to
+ * `existingBadges`), and the single-match feats fire only if the amendment is what crossed the
+ * threshold. Badges are never revoked here: amendments only fill in the record.
+ */
+export function evaluateAmendmentBadges(input: EvaluateAmendmentBadgesInput): BadgeAward[] {
+  const { badgesEnabled, matchId, history, before, existingBadges } = input;
+  if (!badgesEnabled) return [];
+  const amended = history.find((e) => e.matchId === matchId);
+  if (!amended) return [];
+
+  const awards: BadgeAward[] = [];
+  const award = (code: BadgeCode, increment: boolean) => awards.push({ code, matchId, increment });
+  const totalGoals = sumBy(history, (e) => e.goals);
+
+  if (totalGoals > 0 && !existingBadges.has("first_goal")) award("first_goal", false);
+  if (totalGoals >= GOALS_25 && !existingBadges.has("goals_25")) award("goals_25", false);
+  if (before.goals < HAT_TRICK_GOALS && amended.goals >= HAT_TRICK_GOALS) award("hat_trick", true);
+  if (before.assists < ASSIST_KING_ASSISTS && amended.assists >= ASSIST_KING_ASSISTS) award("assist_king", true);
+
+  return awards;
+}
+
 export type CardTier = "bronze" | "silver" | "gold" | "special";
 
 export interface EvaluateCardBadgesInput {
