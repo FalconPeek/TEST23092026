@@ -46,5 +46,7 @@ FATHER side:
 - DONE: PWA (Serwist/Turbopack SW at /sw.js, manifest, icons, push + notificationclick), lib/push/client.ts, /api/og/card share image (public, live-checked).
 - DONE (M6, partial): DB privilege audit + revoke TRUNCATE/REFERENCES/TRIGGER/MAINTAIN from client roles (c714695); open-redirect guard hardened (1dabfe0); Playwright e2e: groups/invite + full match flow through cron finalizer (3dfd1fc, 10 tests green).
 - DECIDED (user): score-only matches finalize with unattributed goals; admins assign them later (amend_match_stats) — 801e6d4. UI: T-027.
-- NEXT (FATHER): seed data (dev demo group), tournament e2e once T-019 lands, final full verification, then deploy decision with user.
+- DONE: demo seeder `npm run seed:demo` (10 players, 3 finalized friendlies, 50 scouting ballots; needs `npm run dev`).
+- FOLLOW-UP (product): quick-mode scouting only covers outfield face stats, so GK attributes (div/han/kic/ref/pos) stay at the prior unless voted in detailed mode → add a GK quick mode (div/han/kic/ref/pos) in SQL + UI.
+- NEXT (FATHER): tournament e2e once T-019 lands, final full verification, then deploy decision with user.
 

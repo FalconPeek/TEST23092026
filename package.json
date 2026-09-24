@@ -16,7 +16,8 @@
     "db:types": "supabase gen types typescript --local --schema public > lib/supabase/database.types.ts",
     "db:push": "supabase db push",
     "check": "npm run lint && npm run typecheck && npm test",
-    "db:reset": "supabase db reset"
+    "db:reset": "supabase db reset",
+    "seed:demo": "node scripts/seed-demo.mts"
   },
   "dependencies": {
     "@serwist/turbopack": "^9.5.12",

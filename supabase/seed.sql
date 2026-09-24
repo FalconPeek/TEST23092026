@@ -1,2 +1,3 @@
--- Dev fixture seed data comes later (see .orchestra/PLAN.md). Intentionally empty for now so
+-- Intentionally empty: demo data is created through the real RPCs by `npm run seed:demo`
+-- (scripts/seed-demo.mts), so it exercises the same rules as the app. This file only exists so
 -- `supabase db reset` / `supabase test db` stop warning about a missing seed file.
