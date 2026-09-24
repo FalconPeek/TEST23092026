@@ -83,3 +83,19 @@ Creating cloud resources (Supabase dev project at M0 is covered by this plan app
 `npm run lint && npm run typecheck && npm test` (engines: seed order, byes, DE drop order/no early rematches, RR fairness, Swiss no-rematch, tiebreakers, rating formula incl. trims/caps/limits, reconciliation, OpenSkill);
 `npm run test:db` (pgTAP: non-members see nothing, spectators can rate but not play, no self-vote, no direct writes to derived tables, votes private); `npm run build`;
 Playwright e2e against dev project: sign in → create group → invite → friendly → reports → finalize → card/OVR/Impacto updated → tournament generated → results auto-advance → leaderboards; `npm run dev` manual check on mobile viewport.
+
+## M7 Plantillas (user request 2026-09-24): FUT-style squads + clubs
+User decisions: both "equipo ideal" (per user, fun) and real match lineups on a pitch; chemistry, team OVR, formations,
+publish/share/vote ("Equipo de la semana"); predefined teams ("clubes") with uploaded crest + colors.
+- **Clubs** (group-scoped): name, short_name, primary/secondary color, crest in Storage bucket `club-crests`
+  (png/jpeg/webp ≤ 512 KB, no SVG; public read; admins write), roster `club_players(club_id, player_id, shirt_number)`.
+  Usable as a match team (`match_teams.club_id` → name/colors/crest) and as a tournament entry (`tournament_entries.club_id`).
+- **Squads**: `squads(id, group_id, owner_player_id, kind dream|lineup, name, formation, team_size, club_id?, match_id?, side?,
+  published, created_at, updated_at)` + `squad_slots(squad_id, slot, position, player_id)`; `squad_likes(squad_id, player_id)`.
+  Owners write their own dream squads; admins write lineup squads; "Aplicar al partido" → set_match_lineup.
+- **Pure engine `lib/squads/`**: formation catalog per team size (slots with position + pitch x/y), team OVR (FUT:
+  mean of slot OVRs from player_cards.ovr_by_position + Σ max(0, ovr−mean)/n), chemistry (per player 0–3: position
+  primary +2 / alt +1, link +1 if ≥ `link_min_matches` shared team appearances with another squad member, club +1 if
+  ≥ `club_min` squad members share their club; team chem = Σ, max 3n). All params in group settings `squads.*`.
+- **Share/vote**: public OG image `/api/og/squad/[id]` for published squads; likes; weekly "Equipo de la semana" =
+  most-liked squad published in the last 7 days (computed on read).
