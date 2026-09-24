@@ -18,10 +18,10 @@ Current milestone: **M1 UI → M2/M3 UI** (M0 done; dev on local Supabase stack)
 | T-012 | scouting vote page | M2 | verified | deps T-011 |
 | T-013 | matches list/create/lineup + auto-balance | M3 | verified | deps T-012 |
 | T-014 | match detail: report score/stats, rate players | M3 | verified (via T-021, T-022) | deps T-013 |
-| T-015 | disputes, finalize button, final result | M3 | todo | deps T-022; lib/actions/finalize.ts ready |
+| T-015 | disputes, finalize button, final result | M3 | verified | deps T-022; lib/actions/finalize.ts ready |
 | T-021 | fix T-014: ≥44px tap targets (stats form, standout search) | M3 | verified (via T-022) | deps T-013; fixes rejected T-014 |
 | T-022 | fix T-021: standout chips + saves toggle ≥44px | M3 | verified | deps T-013; fixes rejected T-021 |
-| T-016 | tournaments: M4 error strings, list, create form | M4 | todo | deps T-015 |
+| T-016 | tournaments: M4 error strings, list, create form | M4 | in_progress | deps T-015 |
 | T-017 | tournament hub: status, registrations, entries, generate | M4 | todo | deps T-016 |
 | T-018 | bracket view + match result actions + realtime | M4 | todo | deps T-017 |
 | T-019 | standings tables + fixtures | M4 | todo | deps T-018 |
@@ -43,5 +43,7 @@ FATHER side:
 - DONE: M5 schema (badges, notifications+prefs, push_subscriptions, leaderboard/Impacto, dashboard RPCs, realtime; 402 pgTAP) — 7a21dc9.
 - DONE: badge engine + awarding, notifications + web push, engagement actions, notify hooks — 234357a (assist_king = 3+ assists in one match, repeatable).
 - DONE: PWA (Serwist/Turbopack SW at /sw.js, manifest, icons, push + notificationclick), lib/push/client.ts, /api/og/card share image (public, live-checked).
-- NEXT (FATHER): M6 hardening — security review (RLS/RPC, advisors), e2e happy paths (Playwright), seed data, then deploy decision with user.
+- DONE (M6, partial): DB privilege audit + revoke TRUNCATE/REFERENCES/TRIGGER/MAINTAIN from client roles (c714695); open-redirect guard hardened (1dabfe0); Playwright e2e: groups/invite + full match flow through cron finalizer (3dfd1fc, 10 tests green).
+- OPEN QUESTION (user): Rule A disputes any match whose goals are not fully attributed to scorers — keep strict or allow unattributed goals?
+- NEXT (FATHER): seed data (dev demo group), tournament e2e once T-019 lands, final full verification, then deploy decision with user.
 
