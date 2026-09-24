@@ -28,7 +28,7 @@ Current milestone: **M1 UI → M2/M3 UI** (M0 done; dev on local Supabase stack)
 | T-028 | fix T-018: champion only when bracket decided + finished | M4 | verified | deps T-017; fixes rejected T-018 |
 | T-027 | finalized match: unattributed goals + admin "Asignar goles" | M3 | verified | deps T-019 |
 | T-020 | polish: Verifier notes + quick-vote bias fix | M1 | verified | deps T-027 |
-| T-023 | M5 strings, badges on profile, share button, templates from es.ts | M5 | in_progress | deps T-020; /api/og/card ready |
+| T-023 | M5 strings, badges on profile, share button, templates from es.ts | M5 | verified | deps T-020; /api/og/card ready |
 | T-024 | rankings page | M5 | todo | deps T-023 |
 | T-025 | /yo dashboard | M5 | todo | deps T-024 |
 | T-026 | notifications center, bell, prefs + push toggle | M5 | todo | deps T-025; lib/push/client.ts ready |
