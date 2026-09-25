@@ -36,7 +36,7 @@ Current milestone: **M1 UI → M2/M3 UI** (M0 done; dev on local Supabase stack)
 | T-030 | squad builder on pitch, mis plantillas, publish/like/share, equipo de la semana | M7 | verified | deps T-029 |
 | T-031 | match lineup on the pitch + apply to match | M7 | verified | deps T-030 |
 | T-032 | clubs in tournaments: "Usar club", crests in bracket/tables | M7 | verified | deps T-031 |
-| T-033 | polish: tournament stepper labels, format card highlight, crest cleanup | M4/M7 | todo | deps T-032 |
+| T-033 | polish: tournament stepper labels, format card highlight, crest cleanup | M4/M7 | verified | deps T-032 |
 
 FATHER side:
 - DONE: lib/settings, M1 schema (8 migrations, 77 pgTAP), lib/rating + lib/reconcile (151 tests) — commit 0b97cd8.
