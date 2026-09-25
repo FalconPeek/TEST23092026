@@ -9,14 +9,13 @@
 - FATHER side committed: `lib/settings` (zod), M1 schema, M2 schema (matches core, scouting votes, derived rating tables, every member has a player row; 14 pgTAP files / 172 assertions), `lib/rating` + `lib/reconcile` (reliability = 2/(1+(RMSE/σ)²), neutral below bias_min_votes), `lib/brackets` (71 tests), vitest global RTL cleanup, `/dev/*` public in development.
 - `.orchestra/.father-seen` = T-001..T-004. NOT auto-appended: `echo T-XXX >> .orchestra/.father-seen` after handling each result.
 
-## Status (updated 2026-09-24 night)
-- User asked for M7 Plantillas (FUT-style squads + clubs with crests); design in PLAN.md M7. FATHER backend DONE: lib/squads engine (08b3f71), clubs/squads schema + storage bucket club-crests (2443eb7), actions (e4d34bf), view/context + /api/og/squad (3197e1c), tournament entries club_id (f2adf9d), seeder with clubs + published squad.
-- Worker chain: T-020 (in progress) → T-023..T-026 (M5 UI) → T-029..T-032 (M7 UI).
-- Verifier SendMessages after each verdict; commit only the task's files. The user sometimes commits the tree themselves (e.g. 53109e0 "asd"): then commit only what's left.
-- No background watcher. Sonnet subagents limited until Sep 25 3pm ART; do FATHER work directly.
+## Status (updated 2026-09-25)
+- ALL Worker tasks T-001..T-033 verified and committed (through 96e80f3). Final verification green: lint 0, typecheck 0, unit 876, pgTAP 453 (35 files), dbint 89, build OK, e2e 17 (groups/invite, match flow incl. score-only + amend, tournament, squads).
+- Worker/Verifier idle in their loops (no todo tasks).
 
 ## Next (FATHER)
-- e2e for tournaments/squads once their UI lands; final full verification (lint, typecheck, test, test:db, test:dbint, build, e2e); then ask the user about prod (cloud Supabase + Vercel, OAuth creds, cron).
+- M6 deploy, only with user approval: see docs/DEPLOY.md (cloud Supabase project, db push, auth providers Google/Discord creds, Vercel env, finalize schedule option A pg_net / B GitHub Actions / C daily Vercel cron).
+- Optional backlog: get_my_dashboard recent_matches with score/side (Verifier T-025 note).
 
 ## Gotchas
 - Bash heredocs can drop backslashes → use Write for code with backslashes. The Write tool turns backslash-u escapes in markdown into literal chars — spell them as U+00A0.

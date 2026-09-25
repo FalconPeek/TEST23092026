@@ -1,6 +1,6 @@
 # BOARD (FATHER-maintained)
 
-Current milestone: **M1 UI → M2/M3 UI** (M0 done; dev on local Supabase stack). Resumed 2026-09-23.
+Current milestone: **M1–M5 + M7 complete (all 33 tasks verified)**. Remaining: M6 deploy (needs user decisions, see docs/DEPLOY.md).
 
 | id | title | milestone | status | notes |
 |----|-------|-----------|--------|-------|
@@ -56,5 +56,6 @@ FATHER side:
 - DONE: GK quick-mode scouting backend (div/han/kic/ref/pos → gk_*) — 13febb1; UI in T-020 step 11.
 - DONE (M7 backend): squad engine (08b3f71), clubs+squads schema (2443eb7, pgTAP 033-034), actions (e4d34bf), view/context + /api/og/squad (3197e1c).
 - DONE: tournament entries can be clubs (f2adf9d).
-- NEXT (FATHER): e2e for tournaments/squads once their UI lands, final full verification, then deploy decision with user.
+- DONE: e2e tournament + squads (17 green); final verification 2026-09-25: lint 0, typecheck 0, unit 876, pgTAP 453, dbint 89, build OK, e2e 17.
+- NEXT: M6 deploy — waiting on user decisions (cloud Supabase project, Vercel, OAuth creds, finalize schedule A/B/C).
 
