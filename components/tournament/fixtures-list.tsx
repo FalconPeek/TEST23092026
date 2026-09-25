@@ -1,7 +1,17 @@
 import Link from "next/link";
 import { BYE, type Bracket, type DecidedBy, type MatchStatus } from "@/lib/brackets";
 import { MatchAdminMenu } from "@/components/tournament/match-admin-menu";
+import { ClubCrest } from "@/components/clubs/club-crest";
 import { es } from "@/messages/es";
+
+/** Minimal crest/colors an entry's club needs to render, keyed by club id in `clubsById`. */
+export type FixtureClub = {
+  name: string;
+  shortName: string;
+  primaryColor: string;
+  secondaryColor: string;
+  crestUrl: string | null;
+};
 
 export interface FixtureMatch {
   id: string;
@@ -23,6 +33,7 @@ export interface FixtureMatch {
 export interface FixtureEntryInfo {
   id: string;
   name: string;
+  clubId: string | null;
 }
 
 type KoBracket = "winners" | "losers" | "final" | "third";
@@ -37,13 +48,15 @@ const BRACKET_FALLBACK_LABEL: Record<KoBracket, string> = {
 interface EntrySide {
   entryId: string | null;
   name: string;
+  clubId: string | null;
   isBye: boolean;
 }
 
 function resolveSide(id: string | null, entryById: Map<string, FixtureEntryInfo>): EntrySide {
-  if (id === BYE) return { entryId: null, name: es.bracket.bye, isBye: true };
-  if (id === null) return { entryId: null, name: es.bracket.tbd, isBye: false };
-  return { entryId: id, name: entryById.get(id)?.name ?? es.bracket.tbd, isBye: false };
+  if (id === BYE) return { entryId: null, name: es.bracket.bye, clubId: null, isBye: true };
+  if (id === null) return { entryId: null, name: es.bracket.tbd, clubId: null, isBye: false };
+  const entry = entryById.get(id);
+  return { entryId: id, name: entry?.name ?? es.bracket.tbd, clubId: entry?.clubId ?? null, isBye: false };
 }
 
 interface FixtureSection {
@@ -104,17 +117,37 @@ function buildSections(matches: FixtureMatch[]): FixtureSection[] {
   return sections;
 }
 
+function EntryNameRow({ side, club }: { side: EntrySide; club: FixtureClub | undefined }) {
+  return (
+    <p className={`flex items-center gap-1.5 truncate text-sm ${side.isBye ? "text-muted-foreground/60" : ""}`}>
+      {club && (
+        <ClubCrest
+          crestUrl={club.crestUrl}
+          primaryColor={club.primaryColor}
+          secondaryColor={club.secondaryColor}
+          shortName={club.shortName}
+          name={club.name}
+          size="sm"
+        />
+      )}
+      <span className="truncate">{side.name}</span>
+    </p>
+  );
+}
+
 function FixtureRow({
   groupId,
   tournamentId,
   match,
   entryById,
+  clubsById,
   admin,
 }: {
   groupId: string;
   tournamentId: string;
   match: FixtureMatch;
   entryById: Map<string, FixtureEntryInfo>;
+  clubsById: Map<string, FixtureClub>;
   admin: boolean;
 }) {
   const side1 = resolveSide(match.entry1Id, entryById);
@@ -125,8 +158,8 @@ function FixtureRow({
   return (
     <div className="flex items-center justify-between gap-2 rounded-lg bg-card p-2.5 ring-1 ring-foreground/10">
       <div className="min-w-0 flex-1">
-        <p className={`truncate text-sm ${side1.isBye ? "text-muted-foreground/60" : ""}`}>{side1.name}</p>
-        <p className={`truncate text-sm ${side2.isBye ? "text-muted-foreground/60" : ""}`}>{side2.name}</p>
+        <EntryNameRow side={side1} club={side1.clubId ? clubsById.get(side1.clubId) : undefined} />
+        <EntryNameRow side={side2} club={side2.clubId ? clubsById.get(side2.clubId) : undefined} />
       </div>
       <div className="flex shrink-0 flex-col items-end gap-0.5">
         {hasScore ? (
@@ -176,12 +209,14 @@ export function FixturesList({
   tournamentId,
   matches,
   entries,
+  clubsById = new Map(),
   admin,
 }: {
   groupId: string;
   tournamentId: string;
   matches: FixtureMatch[];
   entries: FixtureEntryInfo[];
+  clubsById?: Map<string, FixtureClub>;
   admin: boolean;
 }) {
   const entryById = new Map(entries.map((e) => [e.id, e]));
@@ -204,6 +239,7 @@ export function FixturesList({
                 tournamentId={tournamentId}
                 match={match}
                 entryById={entryById}
+                clubsById={clubsById}
                 admin={admin}
               />
             ))}

@@ -13,9 +13,9 @@ vi.mock("@/lib/actions/tournaments", () => ({
 }));
 
 const ENTRIES: FixtureEntryInfo[] = [
-  { id: "e1", name: "Los Pibes" },
-  { id: "e2", name: "Otro Equipo" },
-  { id: "e3", name: "Tercer Equipo" },
+  { id: "e1", name: "Los Pibes", clubId: null },
+  { id: "e2", name: "Otro Equipo", clubId: null },
+  { id: "e3", name: "Tercer Equipo", clubId: null },
 ];
 
 function baseMatch(overrides: Partial<FixtureMatch>): FixtureMatch {

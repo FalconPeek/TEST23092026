@@ -1,9 +1,20 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ClubCrest } from "@/components/clubs/club-crest";
 import { es } from "@/messages/es";
+
+/** Minimal crest/colors an entry's club needs to render, keyed by club id in `clubsById`. */
+export type StandingsClub = {
+  name: string;
+  shortName: string;
+  primaryColor: string;
+  secondaryColor: string;
+  crestUrl: string | null;
+};
 
 export interface StandingsRowDisplay {
   entryId: string;
   entryName: string;
+  clubId: string | null;
   played: number;
   wins: number;
   draws: number;
@@ -33,10 +44,12 @@ export function StandingsTable({
   rows,
   showSwissColumns,
   groupLabel,
+  clubsById = new Map(),
 }: {
   rows: StandingsRowDisplay[];
   showSwissColumns: boolean;
   groupLabel?: string | null;
+  clubsById?: Map<string, StandingsClub>;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -87,7 +100,9 @@ export function StandingsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((row) => (
+            {rows.map((row) => {
+              const club = row.clubId ? clubsById.get(row.clubId) : undefined;
+              return (
               <TableRow key={row.entryId} className={row.qualifies ? "border-l-4 border-l-primary" : undefined}>
                 <TableCell className="tabular-nums">
                   {row.rank}
@@ -97,7 +112,21 @@ export function StandingsTable({
                     </span>
                   )}
                 </TableCell>
-                <TableCell className="max-w-28 truncate text-sm">{row.entryName}</TableCell>
+                <TableCell className="max-w-28 truncate text-sm">
+                  <span className="flex items-center gap-1.5">
+                    {club && (
+                      <ClubCrest
+                        crestUrl={club.crestUrl}
+                        primaryColor={club.primaryColor}
+                        secondaryColor={club.secondaryColor}
+                        shortName={club.shortName}
+                        name={club.name}
+                        size="sm"
+                      />
+                    )}
+                    <span className="truncate">{row.entryName}</span>
+                  </span>
+                </TableCell>
                 <TableCell className="text-center tabular-nums">{row.played}</TableCell>
                 <TableCell className={EXTRA_CELL}>{row.wins}</TableCell>
                 <TableCell className={EXTRA_CELL}>{row.draws}</TableCell>
@@ -113,7 +142,8 @@ export function StandingsTable({
                   </>
                 )}
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
       )}

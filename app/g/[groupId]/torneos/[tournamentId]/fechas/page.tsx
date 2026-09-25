@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { FixturesList, type FixtureMatch } from "@/components/tournament/fixtures-list";
+import { FixturesList, type FixtureClub, type FixtureMatch } from "@/components/tournament/fixtures-list";
 import { TournamentRealtime } from "@/components/tournament/tournament-realtime";
 import { createClient, getUserId } from "@/lib/supabase/server";
 import { isGroupAdmin, type GroupRole } from "@/lib/permissions";
@@ -23,13 +23,14 @@ export default async function TournamentFixturesPage({
   const myRole = membership?.role as GroupRole | undefined;
   const admin = !!myRole && isGroupAdmin(myRole);
 
-  const [{ data: matchRows }, { data: entryRows }, { data: groupRows }] = await Promise.all([
+  const [{ data: matchRows }, { data: entryRows }, { data: groupRows }, { data: clubRows }] = await Promise.all([
     supabase
       .from("tournament_matches")
       .select("id, bracket, round, stage_group_id, entry1_id, entry2_id, status, score1, score2, pens1, pens2, decided_by, match_id")
       .eq("tournament_id", tournamentId),
-    supabase.from("tournament_entries").select("id, name").eq("tournament_id", tournamentId),
+    supabase.from("tournament_entries").select("id, name, club_id").eq("tournament_id", tournamentId),
     supabase.from("stage_groups").select("id, label").eq("tournament_id", tournamentId),
+    supabase.from("clubs").select("id, name, short_name, primary_color, secondary_color, crest_path").eq("group_id", groupId),
   ]);
 
   const groupLabelById = new Map((groupRows ?? []).map((g) => [g.id, g.label]));
@@ -50,12 +51,32 @@ export default async function TournamentFixturesPage({
     matchId: m.match_id,
   }));
 
-  const entries = (entryRows ?? []).map((e) => ({ id: e.id, name: e.name }));
+  const entries = (entryRows ?? []).map((e) => ({ id: e.id, name: e.name, clubId: e.club_id }));
+
+  const clubsById = new Map<string, FixtureClub>(
+    (clubRows ?? []).map((c) => [
+      c.id,
+      {
+        name: c.name,
+        shortName: c.short_name,
+        primaryColor: c.primary_color,
+        secondaryColor: c.secondary_color,
+        crestUrl: c.crest_path ? supabase.storage.from("club-crests").getPublicUrl(c.crest_path).data.publicUrl : null,
+      },
+    ]),
+  );
 
   return (
     <div className="flex flex-col gap-4">
       <TournamentRealtime tournamentId={tournamentId} />
-      <FixturesList groupId={groupId} tournamentId={tournamentId} matches={matches} entries={entries} admin={admin} />
+      <FixturesList
+        groupId={groupId}
+        tournamentId={tournamentId}
+        matches={matches}
+        entries={entries}
+        clubsById={clubsById}
+        admin={admin}
+      />
     </div>
   );
 }

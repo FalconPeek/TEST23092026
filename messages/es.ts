@@ -676,6 +676,8 @@ export const es = {
     removeEntry: "Eliminar equipo",
     removePlayer: "Sacar del equipo",
     needTwoEntries: "Hacen falta al menos 2 equipos",
+    useClub: "Usar club",
+    noClub: "Sin club",
     tabs: {
       overview: "Resumen",
       bracket: "Llave",

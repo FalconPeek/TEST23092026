@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { EntriesEditor, type EntryPlayer } from "@/components/tournament/entries-editor";
+import { EntriesEditor, type EntryClub, type EntryPlayer } from "@/components/tournament/entries-editor";
 import { TournamentAdminControls, TournamentRegisterButton } from "@/components/tournament/tournament-hub-client";
 import { es } from "@/messages/es";
 import { createClient, getUserId } from "@/lib/supabase/server";
@@ -100,7 +100,7 @@ export default async function TournamentOverviewPage({
     );
   }
 
-  const [{ data: playerRows }, { data: entryRows }] = await Promise.all([
+  const [{ data: playerRows }, { data: entryRows }, { data: clubRows }] = await Promise.all([
     supabase
       .from("players")
       .select("id, display_name, avatar_url")
@@ -109,9 +109,14 @@ export default async function TournamentOverviewPage({
       .order("display_name"),
     supabase
       .from("tournament_entries")
-      .select("id, name, seed, player_ids")
+      .select("id, name, seed, player_ids, club_id")
       .eq("tournament_id", tournamentId)
       .order("seed", { ascending: true, nullsFirst: false }),
+    supabase
+      .from("clubs")
+      .select("id, name, short_name, primary_color, secondary_color, crest_path, club_players(player_id)")
+      .eq("group_id", groupId)
+      .order("name"),
   ]);
 
   const playerIds = (playerRows ?? []).map((p) => p.id);
@@ -133,6 +138,17 @@ export default async function TournamentOverviewPage({
     name: e.name,
     seed: e.seed,
     playerIds: e.player_ids,
+    clubId: e.club_id,
+  }));
+
+  const clubs: EntryClub[] = (clubRows ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    shortName: c.short_name,
+    primaryColor: c.primary_color,
+    secondaryColor: c.secondary_color,
+    crestUrl: c.crest_path ? supabase.storage.from("club-crests").getPublicUrl(c.crest_path).data.publicUrl : null,
+    playerIds: c.club_players.map((cp) => cp.player_id),
   }));
 
   const canGenerate = initialEntries.length >= 2;
@@ -156,6 +172,7 @@ export default async function TournamentOverviewPage({
         players={players}
         initialEntries={initialEntries}
         editable={editable}
+        clubs={clubs}
       />
     </div>
   );

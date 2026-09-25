@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { BracketView } from "@/components/tournament/bracket-view";
+import { BracketView, type BracketClub } from "@/components/tournament/bracket-view";
 import { TournamentRealtime } from "@/components/tournament/tournament-realtime";
 import { createClient, getUserId } from "@/lib/supabase/server";
 import { isGroupAdmin, type GroupRole } from "@/lib/permissions";
@@ -25,14 +25,15 @@ export default async function TournamentBracketPage({
   const myRole = membership?.role as GroupRole | undefined;
   const admin = !!myRole && isGroupAdmin(myRole);
 
-  const [{ data: matchRows }, { data: entryRows }] = await Promise.all([
+  const [{ data: matchRows }, { data: entryRows }, { data: clubRows }] = await Promise.all([
     supabase
       .from("tournament_matches")
       .select(
         "id, bracket, round, number, entry1_id, entry2_id, entry1_from, entry2_from, status, winner_entry_id, score1, score2, pens1, pens2, decided_by, match_id",
       )
       .eq("tournament_id", tournamentId),
-    supabase.from("tournament_entries").select("id, name").eq("tournament_id", tournamentId),
+    supabase.from("tournament_entries").select("id, name, club_id").eq("tournament_id", tournamentId),
+    supabase.from("clubs").select("id, name, short_name, primary_color, secondary_color, crest_path").eq("group_id", groupId),
   ]);
 
   const matches: BracketMatchInput[] = (matchRows ?? []).map((m) => ({
@@ -56,6 +57,22 @@ export default async function TournamentBracketPage({
 
   const entries = (entryRows ?? []).map((e) => ({ id: e.id, name: e.name }));
   const layout = buildBracketLayout(matches, entries);
+
+  const clubById = new Map(
+    (clubRows ?? []).map((c) => [
+      c.id,
+      {
+        name: c.name,
+        shortName: c.short_name,
+        primaryColor: c.primary_color,
+        secondaryColor: c.secondary_color,
+        crestUrl: c.crest_path ? supabase.storage.from("club-crests").getPublicUrl(c.crest_path).data.publicUrl : null,
+      },
+    ]),
+  );
+  const clubsByEntry = new Map<string, BracketClub>(
+    (entryRows ?? []).flatMap((e) => (e.club_id && clubById.has(e.club_id) ? [[e.id, clubById.get(e.club_id)!] as const] : [])),
+  );
   const championName =
     tournament.status === "finished" && layout.championEntryId
       ? (entries.find((e) => e.id === layout.championEntryId)?.name ?? null)
@@ -70,6 +87,7 @@ export default async function TournamentBracketPage({
         layout={layout}
         championName={championName}
         admin={admin}
+        clubsByEntry={clubsByEntry}
       />
     </div>
   );

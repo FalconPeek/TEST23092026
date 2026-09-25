@@ -7,10 +7,11 @@ export interface DraftEntry {
   name: string;
   seed: number | null;
   playerIds: string[];
+  clubId: string | null;
 }
 
 export function addEntry(entries: DraftEntry[], id: string, name: string): DraftEntry[] {
-  return [...entries, { id, name, seed: null, playerIds: [] }];
+  return [...entries, { id, name, seed: null, playerIds: [], clubId: null }];
 }
 
 export function removeEntry(entries: DraftEntry[], entryId: string): DraftEntry[] {
@@ -40,6 +41,27 @@ export function assignPlayer(entries: DraftEntry[], entryId: string, playerId: s
 export function unassignPlayer(entries: DraftEntry[], playerId: string): DraftEntry[] {
   return entries.map((e) =>
     e.playerIds.includes(playerId) ? { ...e, playerIds: e.playerIds.filter((id) => id !== playerId) } : e,
+  );
+}
+
+/**
+ * Sets (or clears) an entry's club. Picking a club renames the entry to the club's name and
+ * replaces its roster with the club's players, minus whoever is already on another entry — the
+ * admin can still hand-edit the roster afterwards. Clearing the club (`club: null`) only clears
+ * `clubId`, leaving the current name and players untouched.
+ */
+export function setEntryClub(
+  entries: DraftEntry[],
+  entryId: string,
+  club: { id: string; name: string; playerIds: string[] } | null,
+): DraftEntry[] {
+  if (club === null) {
+    return entries.map((e) => (e.id === entryId ? { ...e, clubId: null } : e));
+  }
+  const takenElsewhere = new Set(entries.flatMap((e) => (e.id === entryId ? [] : e.playerIds)));
+  const rosterPlayerIds = club.playerIds.filter((id) => !takenElsewhere.has(id));
+  return entries.map((e) =>
+    e.id === entryId ? { ...e, clubId: club.id, name: club.name, playerIds: rosterPlayerIds } : e,
   );
 }
 

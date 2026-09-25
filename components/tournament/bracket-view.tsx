@@ -2,13 +2,44 @@ import Link from "next/link";
 import { cn } from "cn";
 import { Badge } from "@/components/ui/badge";
 import { MatchAdminMenu } from "@/components/tournament/match-admin-menu";
+import { ClubCrest } from "@/components/clubs/club-crest";
 import { es } from "@/messages/es";
 import type { BracketLayout, BracketMatchDisplay, BracketSlotDisplay } from "@/lib/tournament/bracket-layout";
 
-function SlotRow({ slot, score }: { slot: BracketSlotDisplay; score: number | null }) {
+/** Minimal crest/colors an entry's club needs to render, keyed by entry id in `clubsByEntry`
+ * (bracket slots only carry an `entryId`, not a `clubId`, so the lookup happens in one hop). */
+export type BracketClub = {
+  name: string;
+  shortName: string;
+  primaryColor: string;
+  secondaryColor: string;
+  crestUrl: string | null;
+};
+
+function SlotRow({
+  slot,
+  score,
+  club,
+}: {
+  slot: BracketSlotDisplay;
+  score: number | null;
+  club: BracketClub | undefined;
+}) {
   return (
     <div className={cn("flex items-center justify-between gap-2", slot.kind === "bye" && "text-muted-foreground/60")}>
-      <span className={cn("min-w-0 flex-1 truncate text-sm", slot.isWinner && "font-semibold")}>{slot.label}</span>
+      <span className="flex min-w-0 items-center gap-1.5">
+        {club && (
+          <ClubCrest
+            crestUrl={club.crestUrl}
+            primaryColor={club.primaryColor}
+            secondaryColor={club.secondaryColor}
+            shortName={club.shortName}
+            name={club.name}
+            size="sm"
+          />
+        )}
+        <span className={cn("min-w-0 flex-1 truncate text-sm", slot.isWinner && "font-semibold")}>{slot.label}</span>
+      </span>
       {score !== null && (
         <span className={cn("shrink-0 text-xs tabular-nums", slot.isWinner && "font-semibold")}>{score}</span>
       )}
@@ -21,11 +52,13 @@ function MatchCard({
   tournamentId,
   match,
   admin,
+  clubsByEntry,
 }: {
   groupId: string;
   tournamentId: string;
   match: BracketMatchDisplay;
   admin: boolean;
+  clubsByEntry: Map<string, BracketClub>;
 }) {
   const pensLabel = match.pens1 !== null && match.pens2 !== null ? `(${match.pens1}-${match.pens2} pen.)` : null;
 
@@ -52,8 +85,8 @@ function MatchCard({
         )}
       </div>
       <div className="flex flex-col gap-1">
-        <SlotRow slot={match.slot1} score={match.score1} />
-        <SlotRow slot={match.slot2} score={match.score2} />
+        <SlotRow slot={match.slot1} score={match.score1} club={match.slot1.entryId ? clubsByEntry.get(match.slot1.entryId) : undefined} />
+        <SlotRow slot={match.slot2} score={match.score2} club={match.slot2.entryId ? clubsByEntry.get(match.slot2.entryId) : undefined} />
       </div>
       {pensLabel && <p className="text-center text-[10px] text-muted-foreground">{pensLabel}</p>}
       {match.decidedBy === "walkover" && (
@@ -77,12 +110,14 @@ export function BracketView({
   layout,
   championName,
   admin,
+  clubsByEntry = new Map(),
 }: {
   groupId: string;
   tournamentId: string;
   layout: BracketLayout;
   championName: string | null;
   admin: boolean;
+  clubsByEntry?: Map<string, BracketClub>;
 }) {
   return (
     <div className="flex flex-col gap-6">
@@ -108,6 +143,7 @@ export function BracketView({
                       tournamentId={tournamentId}
                       match={match}
                       admin={admin}
+                      clubsByEntry={clubsByEntry}
                     />
                   ))}
                 </div>

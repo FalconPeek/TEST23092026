@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { StandingsTable, type StandingsRowDisplay } from "@/components/tournament/standings-table";
+import { StandingsTable, type StandingsClub, type StandingsRowDisplay } from "@/components/tournament/standings-table";
 import { TournamentRealtime } from "@/components/tournament/tournament-realtime";
 import { es } from "@/messages/es";
 import { seededRng } from "@/lib/brackets";
@@ -37,13 +37,26 @@ export default async function TournamentStandingsPage({
   const settings = parseTournamentSettings(tournament.settings);
   const qualifiersPerGroup = settings.groups_ko.qualifiers_per_group;
 
-  const [{ data: entryRows }, { data: groupRows }] = await Promise.all([
-    supabase.from("tournament_entries").select("id, name").eq("tournament_id", tournamentId),
+  const [{ data: entryRows }, { data: groupRows }, { data: clubRows }] = await Promise.all([
+    supabase.from("tournament_entries").select("id, name, club_id").eq("tournament_id", tournamentId),
     supabase.from("stage_groups").select("engine_key, label").eq("tournament_id", tournamentId),
+    supabase.from("clubs").select("id, name, short_name, primary_color, secondary_color, crest_path").eq("group_id", groupId),
   ]);
 
-  const entryById = new Map((entryRows ?? []).map((e) => [e.id, e.name]));
+  const entryById = new Map((entryRows ?? []).map((e) => [e.id, e]));
   const groupLabelByEngineKey = new Map((groupRows ?? []).map((g) => [g.engine_key, g.label]));
+  const clubsById = new Map<string, StandingsClub>(
+    (clubRows ?? []).map((c) => [
+      c.id,
+      {
+        name: c.name,
+        shortName: c.short_name,
+        primaryColor: c.primary_color,
+        secondaryColor: c.secondary_color,
+        crestUrl: c.crest_path ? supabase.storage.from("club-crests").getPublicUrl(c.crest_path).data.publicUrl : null,
+      },
+    ]),
+  );
 
   const repo = createSupabaseTournamentRepo(supabase);
   const stageStandings = await computeStandings(repo, tournamentId, seededRng(seedFromId(tournamentId)));
@@ -53,7 +66,8 @@ export default async function TournamentStandingsPage({
   const tables = stageStandings.map((stage) => {
     const rows: StandingsRowDisplay[] = stage.rows.map((row) => ({
       entryId: row.entryId,
-      entryName: entryById.get(row.entryId) ?? "?",
+      entryName: entryById.get(row.entryId)?.name ?? "?",
+      clubId: entryById.get(row.entryId)?.club_id ?? null,
       played: row.played,
       wins: row.wins,
       draws: row.draws,
@@ -84,6 +98,7 @@ export default async function TournamentStandingsPage({
             rows={t.rows}
             showSwissColumns={tournament.format === "swiss"}
             groupLabel={t.groupLabel}
+            clubsById={clubsById}
           />
         ))
       )}
