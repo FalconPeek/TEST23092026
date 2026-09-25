@@ -28,10 +28,11 @@ export default async function NewSquadPage({ params }: PageProps<"/g/[groupId]/p
   const groupSettings = parseGroupSettings(group.settings);
   const teamSize = groupSettings.default_team_size as TeamSize;
 
-  const [{ context, settings }, { data: clubRows }] = await Promise.all([
+  const [{ context, settings }, { data: clubRows, error: clubRowsError }] = await Promise.all([
     loadSquadContext(supabase, groupId),
     supabase.from("clubs").select("id, name, short_name, primary_color, secondary_color, crest_path").eq("group_id", groupId).order("name"),
   ]);
+  if (clubRowsError) throw clubRowsError;
 
   const clubs = (clubRows ?? []).map((c) => ({
     id: c.id,

@@ -90,6 +90,20 @@ describe("SquadEditor", () => {
     expect(within(sheet).getByText("Bajo")).toBeInTheDocument();
   });
 
+  it("shows a dedicated message when no player is left for a slot", async () => {
+    const user = userEvent.setup();
+    renderEditor();
+
+    await user.click(screen.getByRole("button", { name: `${es.squads.emptySlot} DC` }));
+    await user.click(screen.getByRole("button", { name: /Alto/ }));
+    await user.click(screen.getByRole("button", { name: `${es.squads.emptySlot} MI` }));
+    await user.click(screen.getByRole("button", { name: /Bajo/ }));
+
+    await user.click(screen.getByRole("button", { name: `${es.squads.emptySlot} POR` }));
+
+    expect(screen.getByText(es.squads.noCandidates)).toBeInTheDocument();
+  });
+
   it("saves a slot payload with no position field", async () => {
     mockSaveSquad.mockResolvedValue({ ok: true, data: { squadId: "s1" } });
     const user = userEvent.setup();

@@ -31,7 +31,11 @@ export default async function SquadsPage({ params }: PageProps<"/g/[groupId]/pla
     : { data: null };
   const myPlayerId = myPlayer?.id ?? null;
 
-  const [{ data: featuredRows }, { data: mySquads }, { data: communitySquads }] = await Promise.all([
+  const [
+    { data: featuredRows, error: featuredError },
+    { data: mySquads, error: mySquadsError },
+    { data: communitySquads, error: communitySquadsError },
+  ] = await Promise.all([
     supabase.rpc("get_featured_squad", { p_group_id: groupId, p_window_days: settings.featured_window_days }),
     myPlayerId
       ? supabase
@@ -41,7 +45,7 @@ export default async function SquadsPage({ params }: PageProps<"/g/[groupId]/pla
           .eq("kind", "dream")
           .eq("owner_player_id", myPlayerId)
           .order("created_at", { ascending: false })
-      : Promise.resolve({ data: [] as never[] }),
+      : Promise.resolve({ data: [] as never[], error: null }),
     supabase
       .from("squads")
       .select(
@@ -52,6 +56,9 @@ export default async function SquadsPage({ params }: PageProps<"/g/[groupId]/pla
       .eq("published", true)
       .order("published_at", { ascending: false }),
   ]);
+  if (featuredError) throw featuredError;
+  if (mySquadsError) throw mySquadsError;
+  if (communitySquadsError) throw communitySquadsError;
 
   const featured = featuredRows?.[0] ?? null;
   let featuredSquad: { id: string; name: string; team_size: number; formation: string; squad_slots: { slot: number; player_id: string }[] } | null = null;
@@ -67,10 +74,11 @@ export default async function SquadsPage({ params }: PageProps<"/g/[groupId]/pla
 
   const communityOthers = (communitySquads ?? []).filter((s) => s.owner_player_id !== myPlayerId);
   const communitySquadIds = communityOthers.map((s) => s.id);
-  const { data: myLikeRows } =
+  const { data: myLikeRows, error: myLikeRowsError } =
     myPlayerId && communitySquadIds.length > 0
       ? await supabase.from("squad_likes").select("squad_id").eq("player_id", myPlayerId).in("squad_id", communitySquadIds)
-      : { data: [] as { squad_id: string }[] };
+      : { data: [] as { squad_id: string }[], error: null };
+  if (myLikeRowsError) throw myLikeRowsError;
   const likedSquadIds = new Set((myLikeRows ?? []).map((r) => r.squad_id));
 
   return (

@@ -11,7 +11,7 @@ export default async function ClubsPage({ params }: PageProps<"/g/[groupId]/club
   const supabase = await createClient();
   const userId = await getUserId();
 
-  const [{ data: clubs }, { data: membership }] = await Promise.all([
+  const [{ data: clubs, error: clubsError }, { data: membership }] = await Promise.all([
     supabase
       .from("clubs")
       .select("id, name, short_name, primary_color, secondary_color, crest_path, club_players(count)")
@@ -21,6 +21,7 @@ export default async function ClubsPage({ params }: PageProps<"/g/[groupId]/club
       ? supabase.from("group_members").select("role").eq("group_id", groupId).eq("user_id", userId).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
+  if (clubsError) throw clubsError;
 
   const myRole = membership?.role as GroupRole | undefined;
   const admin = !!myRole && isGroupAdmin(myRole);

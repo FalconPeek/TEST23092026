@@ -884,6 +884,7 @@ export const es = {
     chemistryHelp:
       "Química: posición (principal +2 / alternativa +1), +1 si jugaron juntos varios partidos, +1 por club.",
     remove: "Quitar",
+    noCandidates: "No quedan jugadores disponibles.",
   },
 } as const;
 

@@ -178,7 +178,7 @@ export function CreateTournamentForm({ groupId, defaultTeamSize }: { groupId: st
           {tournamentFormats.map((f) => (
             <label
               key={f}
-              className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg bg-background p-3 ring-1 ring-foreground/10 has-[[data-checked]]:ring-2 has-[[data-checked]]:ring-primary"
+              className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg bg-background p-3 ring-1 ring-foreground/10 has-[[data-state=checked]]:ring-2 has-[[data-state=checked]]:ring-primary"
             >
               <RadioGroupItem value={f} />
               <span className="text-sm">{es.tournaments.formats[f]}</span>

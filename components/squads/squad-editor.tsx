@@ -383,7 +383,7 @@ export function SquadEditor({
               </Button>
             )}
             {sheetCandidates.length === 0 ? (
-              <p className="py-4 text-sm text-muted-foreground">{es.clubs.empty}</p>
+              <p className="py-4 text-sm text-muted-foreground">{es.squads.noCandidates}</p>
             ) : (
               sheetCandidates.map((candidate) => (
                 <button

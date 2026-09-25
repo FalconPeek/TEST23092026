@@ -31,11 +31,19 @@ function Stepper({ value, onChange, label }: { value: number; onChange: (value: 
           className="size-11"
           onClick={() => onChange(Math.max(0, value - 1))}
           disabled={value <= 0}
+          aria-label={es.match.decrease(label)}
         >
           −
         </Button>
         <span className="w-6 text-center text-lg font-semibold tabular-nums">{value}</span>
-        <Button type="button" variant="outline" size="icon" className="size-11" onClick={() => onChange(value + 1)}>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="size-11"
+          onClick={() => onChange(value + 1)}
+          aria-label={es.match.increase(label)}
+        >
           +
         </Button>
       </div>
@@ -226,9 +234,9 @@ function ResultDialog({
                   </label>
                   {usePens && (
                     <div className="flex items-center justify-center gap-6">
-                      <Stepper value={pens1} onChange={setPens1} label={slot1.label} />
+                      <Stepper value={pens1} onChange={setPens1} label={`${slot1.label} · ${es.bracket.pens}`} />
                       <span className="text-lg text-muted-foreground">-</span>
-                      <Stepper value={pens2} onChange={setPens2} label={slot2.label} />
+                      <Stepper value={pens2} onChange={setPens2} label={`${slot2.label} · ${es.bracket.pens}`} />
                     </div>
                   )}
                 </div>

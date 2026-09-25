@@ -106,12 +106,30 @@ describe("MatchAdminMenu result dialog", () => {
 
     // Both scores start at 0 (tied), so pens is already offered; make it 1-0 first to check it
     // disappears, then re-tie it at 1-1 to check it reappears.
-    const plusButtons = screen.getAllByRole("button", { name: "+" });
-    await user.click(plusButtons[0]!); // slot1 -> 1
+    await user.click(screen.getByRole("button", { name: es.match.increase("Los Pibes") }));
     expect(screen.queryByText(es.bracket.pens)).not.toBeInTheDocument();
 
-    await user.click(screen.getAllByRole("button", { name: "+" })[1]!); // slot2 -> 1
+    await user.click(screen.getByRole("button", { name: es.match.increase("Otro Equipo") }));
     expect(screen.getByText(es.bracket.pens)).toBeInTheDocument();
+  });
+
+  it("gives every score and penalty stepper button an accessible name", async () => {
+    renderReady();
+    const user = await openMenu();
+    await user.click(screen.getByRole("menuitem", { name: es.bracket.enterResult }));
+
+    expect(screen.getByRole("button", { name: es.match.decrease("Los Pibes") })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: es.match.increase("Los Pibes") })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: es.match.decrease("Otro Equipo") })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: es.match.increase("Otro Equipo") })).toBeInTheDocument();
+
+    // Tied by default, so the "Penales" switch is offered; turning it on reveals penalty
+    // steppers with a distinct accessible name from the score steppers for the same team.
+    const dialog = screen.getByRole("dialog");
+    await user.click(within(dialog).getByRole("switch", { name: es.bracket.pens }));
+    expect(
+      screen.getByRole("button", { name: es.match.increase(`Los Pibes · ${es.bracket.pens}`) }),
+    ).toBeInTheDocument();
   });
 
   it("requires a winner before submitting a walkover", async () => {

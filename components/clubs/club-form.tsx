@@ -113,6 +113,7 @@ export function ClubForm({
       return;
     }
 
+    const oldPath = crestPath;
     startCrestTransition(async () => {
       const path = `${groupId}/${club.id}.${ext}`;
       const supabase = createClient();
@@ -138,6 +139,11 @@ export function ClubForm({
         toast.error(result.error);
         return;
       }
+      // A different extension means a different object key: the old one is now orphaned in
+      // Storage. Best effort -- a failed cleanup never blocks the save that already succeeded.
+      if (oldPath && oldPath !== path) {
+        await supabase.storage.from("club-crests").remove([oldPath]).catch(() => {});
+      }
       setCrestPath(path);
       setCrestUrl(`${data.publicUrl}?v=${Date.now()}`);
       toast.success(es.clubs.saved);
@@ -145,6 +151,7 @@ export function ClubForm({
   }
 
   function handleRemoveCrest() {
+    const oldPath = crestPath;
     startCrestTransition(async () => {
       const result = await updateClub({
         groupId,
@@ -158,6 +165,10 @@ export function ClubForm({
       if (!result.ok) {
         toast.error(result.error);
         return;
+      }
+      if (oldPath) {
+        const supabase = createClient();
+        await supabase.storage.from("club-crests").remove([oldPath]).catch(() => {});
       }
       setCrestPath(null);
       setCrestUrl(null);

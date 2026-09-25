@@ -53,6 +53,25 @@ describe("CreateTournamentForm format-specific fields", () => {
   });
 });
 
+describe("CreateTournamentForm format selection", () => {
+  it("highlights the selected format card with a ring class matching the radio item's real checked attribute", async () => {
+    const user = userEvent.setup();
+    render(<CreateTournamentForm groupId="g1" defaultTeamSize={7} />);
+
+    const leagueLabel = screen.getByRole("radio", { name: es.tournaments.formats.league }).closest("label")!;
+
+    // Radix's radio item marks itself checked via `data-state`, not `data-checked` -- the card's
+    // selected-ring selector must target the attribute the item actually sets.
+    expect(leagueLabel.className).toContain("has-[[data-state=checked]]:ring-2");
+    expect(leagueLabel.className).not.toContain("data-checked");
+
+    await user.click(screen.getByRole("radio", { name: es.tournaments.formats.groups_ko }));
+
+    expect(screen.getByRole("radio", { name: es.tournaments.formats.league })).toHaveAttribute("data-state", "unchecked");
+    expect(screen.getByRole("radio", { name: es.tournaments.formats.groups_ko })).toHaveAttribute("data-state", "checked");
+  });
+});
+
 describe("CreateTournamentForm tiebreaker reorder", () => {
   it("moves a tiebreaker down when its down button is clicked", async () => {
     const user = userEvent.setup();

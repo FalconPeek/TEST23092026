@@ -36,11 +36,12 @@ export default async function SquadDetailPage({
   const { context, settings } = await loadSquadContext(supabase, groupId);
 
   if (isOwner) {
-    const { data: clubRows } = await supabase
+    const { data: clubRows, error: clubRowsError } = await supabase
       .from("clubs")
       .select("id, name, short_name, primary_color, secondary_color, crest_path")
       .eq("group_id", groupId)
       .order("name");
+    if (clubRowsError) throw clubRowsError;
 
     const clubs = (clubRows ?? []).map((c) => ({
       id: c.id,
@@ -79,10 +80,11 @@ export default async function SquadDetailPage({
   const { data: likeRow } = myPlayerId
     ? await supabase.from("squad_likes").select("player_id").eq("squad_id", squadId).eq("player_id", myPlayerId).maybeSingle()
     : { data: null };
-  const { count: likeCount } = await supabase
+  const { count: likeCount, error: likeCountError } = await supabase
     .from("squad_likes")
     .select("*", { count: "exact", head: true })
     .eq("squad_id", squadId);
+  if (likeCountError) throw likeCountError;
 
   return (
     <div className="flex flex-col items-center gap-4 px-4 py-6">

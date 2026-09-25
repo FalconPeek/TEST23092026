@@ -39,25 +39,28 @@ export default async function ClubDetailPage({
     ? supabase.storage.from("club-crests").getPublicUrl(club.crest_path).data.publicUrl
     : null;
 
-  const { data: rosterRows } = await supabase
+  const { data: rosterRows, error: rosterRowsError } = await supabase
     .from("club_players")
     .select("player_id, shirt_number, players(id, display_name, avatar_url)")
     .eq("club_id", clubId);
+  if (rosterRowsError) throw rosterRowsError;
 
   const rosterPlayerIds = (rosterRows ?? []).map((row) => row.player_id);
-  const { data: cardRows } =
+  const { data: cardRows, error: cardRowsError } =
     rosterPlayerIds.length > 0
       ? await supabase.from("player_cards").select("player_id, ovr").in("player_id", rosterPlayerIds)
-      : { data: [] };
+      : { data: [], error: null };
+  if (cardRowsError) throw cardRowsError;
   const ovrByPlayerId = new Map((cardRows ?? []).map((row) => [row.player_id, row.ovr]));
 
   if (admin) {
-    const { data: playerRows } = await supabase
+    const { data: playerRows, error: playerRowsError } = await supabase
       .from("players")
       .select("id, display_name, avatar_url")
       .eq("group_id", groupId)
       .is("left_at", null)
       .order("display_name");
+    if (playerRowsError) throw playerRowsError;
 
     const initialRoster: Record<string, number | null> = {};
     for (const row of rosterRows ?? []) {

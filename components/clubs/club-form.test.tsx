@@ -31,12 +31,14 @@ vi.mock("@/lib/actions/clubs", () => ({
 
 const mockUpload = vi.fn();
 const mockGetPublicUrl = vi.fn();
+const mockRemove = vi.fn();
 vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({
     storage: {
       from: () => ({
         upload: (...args: unknown[]) => mockUpload(...args),
         getPublicUrl: (...args: unknown[]) => mockGetPublicUrl(...args),
+        remove: (...args: unknown[]) => mockRemove(...args),
       }),
     },
   }),
@@ -99,6 +101,49 @@ describe("ClubForm crest upload validation", () => {
     await waitFor(() =>
       expect(mockUpdateClub).toHaveBeenCalledWith(expect.objectContaining({ clubId: "c1", crestPath: "g1/c1.png" })),
     );
+  });
+
+  it("removes the old crest object when the new one has a different extension", async () => {
+    mockUpload.mockResolvedValue({ error: null });
+    mockGetPublicUrl.mockReturnValue({ data: { publicUrl: "https://storage.example/club-crests/g1/c1.png" } });
+    mockUpdateClub.mockResolvedValue({ ok: true, data: undefined });
+    mockRemove.mockResolvedValue({ error: null });
+    const user = userEvent.setup();
+    const withJpgCrest: ClubFormData = { ...CLUB, crestPath: "g1/c1.jpg", crestUrl: "https://storage.example/club-crests/g1/c1.jpg" };
+    const { container } = render(<ClubForm groupId="g1" club={withJpgCrest} players={[]} initialRoster={{}} />);
+
+    const file = new File(["ok"], "crest.png", { type: "image/png" });
+    await user.upload(getFileInput(container), file);
+
+    await waitFor(() => expect(mockRemove).toHaveBeenCalledWith(["g1/c1.jpg"]));
+  });
+
+  it("does not remove anything when the crest keeps the same extension", async () => {
+    mockUpload.mockResolvedValue({ error: null });
+    mockGetPublicUrl.mockReturnValue({ data: { publicUrl: "https://storage.example/club-crests/g1/c1.png" } });
+    mockUpdateClub.mockResolvedValue({ ok: true, data: undefined });
+    const user = userEvent.setup();
+    const withPngCrest: ClubFormData = { ...CLUB, crestPath: "g1/c1.png", crestUrl: "https://storage.example/club-crests/g1/c1.png" };
+    const { container } = render(<ClubForm groupId="g1" club={withPngCrest} players={[]} initialRoster={{}} />);
+
+    const file = new File(["ok"], "crest.png", { type: "image/png" });
+    await user.upload(getFileInput(container), file);
+
+    await waitFor(() => expect(mockUpdateClub).toHaveBeenCalled());
+    expect(mockRemove).not.toHaveBeenCalled();
+  });
+
+  it("removing the crest deletes its storage object", async () => {
+    mockUpdateClub.mockResolvedValue({ ok: true, data: undefined });
+    mockRemove.mockResolvedValue({ error: null });
+    const user = userEvent.setup();
+    const withCrest: ClubFormData = { ...CLUB, crestPath: "g1/c1.png", crestUrl: "https://storage.example/club-crests/g1/c1.png" };
+    render(<ClubForm groupId="g1" club={withCrest} players={[]} initialRoster={{}} />);
+
+    await user.click(screen.getByRole("button", { name: es.clubs.removeCrest }));
+
+    await waitFor(() => expect(mockRemove).toHaveBeenCalledWith(["g1/c1.png"]));
+    expect(mockUpdateClub).toHaveBeenCalledWith(expect.objectContaining({ clubId: "c1", crestPath: null }));
   });
 });
 
