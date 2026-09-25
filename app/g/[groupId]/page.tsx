@@ -65,6 +65,14 @@ export default async function GroupHomePage({ params }: PageProps<"/g/[groupId]"
         </Card>
       </Link>
 
+      <Link href={`/g/${groupId}/plantillas`}>
+        <Card className="transition-colors hover:bg-muted/50">
+          <CardContent className="flex min-h-11 items-center justify-between py-3 text-sm font-medium">
+            {es.squads.title}
+          </CardContent>
+        </Card>
+      </Link>
+
       {preview.length > 0 && (
         <div className="flex flex-col gap-2">
           <Link

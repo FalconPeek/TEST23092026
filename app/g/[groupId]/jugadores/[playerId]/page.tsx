@@ -104,6 +104,11 @@ export default async function PlayerProfilePage({
               <Link href={`/g/${groupId}/jugadores/${playerId}/editar`}>{es.profile.editProfile}</Link>
             </Button>
           )}
+          {isOwnPlayer && (
+            <Button asChild variant="outline">
+              <Link href={`/g/${groupId}/plantillas/nueva`}>{es.profile.buildSquad}</Link>
+            </Button>
+          )}
         </div>
 
         {cardProps && <ShareCardButton playerId={playerId} playerName={player.display_name} />}
