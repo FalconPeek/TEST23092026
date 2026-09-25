@@ -34,7 +34,7 @@ Current milestone: **M1 UI → M2/M3 UI** (M0 done; dev on local Supabase stack)
 | T-026 | notifications center, bell, prefs + push toggle | M5 | verified | deps T-025; lib/push/client.ts ready |
 | T-029 | clubs: list, create/edit, colors, crest upload, roster | M7 | verified | deps T-026 |
 | T-030 | squad builder on pitch, mis plantillas, publish/like/share, equipo de la semana | M7 | verified | deps T-029 |
-| T-031 | match lineup on the pitch + apply to match | M7 | todo | deps T-030 |
+| T-031 | match lineup on the pitch + apply to match | M7 | verified | deps T-030 |
 | T-032 | clubs in tournaments: "Usar club", crests in bracket/tables | M7 | todo | deps T-031 |
 | T-033 | polish: tournament stepper labels, format card highlight, crest cleanup | M4/M7 | todo | deps T-032 |
 
