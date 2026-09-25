@@ -748,6 +748,22 @@ export const es = {
       moveDown: "Bajar",
     },
   },
+  dashboard: {
+    title: "Mi progreso",
+    pickGroup: "Grupo",
+    noGroups: "Sumate a un grupo para ver tu progreso.",
+    ovrHistory: "Evolución de tu media",
+    recentMatches: "Últimos partidos",
+    totals: "Totales",
+    impacto: "Impacto",
+    noHistory: "Todavía no hay historial.",
+    noMatches: "Todavía no jugaste ningún partido.",
+    result: {
+      win: "G",
+      draw: "E",
+      loss: "P",
+    },
+  },
   rankings: {
     title: "Rankings",
     metrics: {
