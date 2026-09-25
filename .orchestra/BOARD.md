@@ -30,7 +30,7 @@ Current milestone: **M1 UI → M2/M3 UI** (M0 done; dev on local Supabase stack)
 | T-020 | polish: Verifier notes + quick-vote bias fix | M1 | verified | deps T-027 |
 | T-023 | M5 strings, badges on profile, share button, templates from es.ts | M5 | verified | deps T-020; /api/og/card ready |
 | T-024 | rankings page | M5 | verified | deps T-023 |
-| T-025 | /yo dashboard | M5 | in_progress | deps T-024 |
+| T-025 | /yo dashboard | M5 | verified | deps T-024 |
 | T-026 | notifications center, bell, prefs + push toggle | M5 | todo | deps T-025; lib/push/client.ts ready |
 | T-029 | clubs: list, create/edit, colors, crest upload, roster | M7 | todo | deps T-026 |
 | T-030 | squad builder on pitch, mis plantillas, publish/like/share, equipo de la semana | M7 | todo | deps T-029 |
