@@ -27,13 +27,11 @@ Nothing here has been run yet: production resources are created only with the ow
    | `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | `npx web-push generate-vapid-keys`; subject `mailto:<you>` |
 3. Never set `E2E_*` or `DEMO_PASSWORD` in production (`scripts/seed-demo.mts` refuses non-local URLs anyway).
 
-## 3. Match finalization schedule (decision needed)
-pg_cron only marks expired matches as `pending_finalize`. The TypeScript finalizer (reconcile → stats → OpenSkill → cards → badges → notifications → bracket advance) runs when something calls `POST /api/cron/finalize` with `Authorization: Bearer $CRON_SECRET`.
+## 3. Match finalization schedule (decided: option A)
+pg_cron marks expired matches as  (, every 10 min). Then  (minutes 5, 15, 25…) calls  through **pg_net** with the  bearer. That runs the TypeScript finalizer: reconcile → stats → OpenSkill → cards → badges → notifications → bracket advance.
 
-Vercel Hobby cron can only run once a day. Options:
-- **A (recommended, free):** pg_cron + `pg_net` in Supabase calls the route every 10 minutes. It's one migration, and the secret is stored in Supabase Vault.
-- **B:** a GitHub Actions scheduled workflow (`*/15 * * * *`) that curls the route (free for public/private repos within minutes quota).
-- **C:** Vercel cron daily (enough only if finalizing within ~24 h is acceptable). Admins can always close a match early with "Cerrar partido ahora".
+The job reads two Supabase Vault secrets and does nothing until they exist. Run once in the SQL editor after the first deploy:
+\Check it:  should show 200s. Admins can still close a match instantly with "Cerrar partido ahora".
 
 ## 4. After the first deploy
 - Sign in with Google/Discord, create a group, and install the PWA on a phone (Android: "Instalar app"; iPhone: Share → "Agregar a inicio"). Then enable notifications in `/yo/ajustes`.
