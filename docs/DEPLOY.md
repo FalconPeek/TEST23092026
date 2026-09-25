@@ -28,10 +28,16 @@ Nothing here has been run yet: production resources are created only with the ow
 3. Never set `E2E_*` or `DEMO_PASSWORD` in production (`scripts/seed-demo.mts` refuses non-local URLs anyway).
 
 ## 3. Match finalization schedule (decided: option A)
-pg_cron marks expired matches as  (, every 10 min). Then  (minutes 5, 15, 25…) calls  through **pg_net** with the  bearer. That runs the TypeScript finalizer: reconcile → stats → OpenSkill → cards → badges → notifications → bracket advance.
+pg_cron marks expired matches as `pending_finalize` (`picado-close-windows`, every 10 min). Then `picado-finalize` (minutes 5, 15, 25…) calls `POST /api/cron/finalize` through **pg_net** with the `CRON_SECRET` bearer. That runs the TypeScript finalizer: reconcile → stats → OpenSkill → cards → badges → notifications → bracket advance.
 
 The job reads two Supabase Vault secrets and does nothing until they exist. Run once in the SQL editor after the first deploy:
-\Check it:  should show 200s. Admins can still close a match instantly with "Cerrar partido ahora".
+
+```sql
+select vault.create_secret('https://<domain>/', 'picado_site_url');
+select vault.create_secret('<same CRON_SECRET as in Vercel>', 'picado_cron_secret');
+```
+
+Check it with `select * from net._http_response order by created desc limit 5;`: it should show 200s. Admins can still close a match instantly with "Cerrar partido ahora".
 
 ## 4. After the first deploy
 - Sign in with Google/Discord, create a group, and install the PWA on a phone (Android: "Instalar app"; iPhone: Share → "Agregar a inicio"). Then enable notifications in `/yo/ajustes`.
