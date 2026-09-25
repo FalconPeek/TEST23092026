@@ -45,7 +45,7 @@ export default async function SquadsPage({ params }: PageProps<"/g/[groupId]/pla
     supabase
       .from("squads")
       .select(
-        "id, name, team_size, formation, owner_player_id, players(display_name), squad_slots(slot, player_id), squad_likes(count)",
+        "id, name, team_size, formation, owner_player_id, owner:players!squads_owner_player_id_fkey(display_name), squad_slots(slot, player_id), squad_likes(count)",
       )
       .eq("group_id", groupId)
       .eq("kind", "dream")
@@ -144,7 +144,7 @@ export default async function SquadsPage({ params }: PageProps<"/g/[groupId]/pla
                     <Link href={`/g/${groupId}/plantillas/${squad.id}`} className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{squad.name}</p>
                       <p className="truncate text-xs text-muted-foreground">
-                        {es.squads.by(squad.players?.display_name ?? "?")}
+                        {es.squads.by(squad.owner?.display_name ?? "?")}
                         {view && ` · ${es.squads.rating} ${view.rating.rating}`}
                       </p>
                     </Link>
