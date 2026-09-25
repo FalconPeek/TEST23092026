@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ClubCrest } from "@/components/clubs/club-crest";
 import { AmendStatsForm, type AmendFormPlayer } from "@/components/match/amend-stats-form";
 import { FinalizeButton } from "@/components/match/finalize-button";
 import { MatchResult, type MatchResultPlayerStat } from "@/components/match/match-result";
@@ -47,7 +48,7 @@ export default async function MatchDetailPage({
     { data: matchResultRow },
     { data: matchStatsRows },
   ] = await Promise.all([
-    supabase.from("match_teams").select("id, side, name, color").eq("match_id", matchId),
+    supabase.from("match_teams").select("id, side, name, color, club_id").eq("match_id", matchId),
     supabase
       .from("match_participants")
       .select("player_id, team_id, role, position, players(id, display_name, avatar_url, user_id, primary_position)")
@@ -67,6 +68,26 @@ export default async function MatchDetailPage({
 
   const team1 = teamRows?.find((t) => t.side === 1);
   const team2 = teamRows?.find((t) => t.side === 2);
+
+  const clubIds = [team1?.club_id, team2?.club_id].filter((id): id is string => id !== null && id !== undefined);
+  const { data: clubRows } =
+    clubIds.length > 0
+      ? await supabase.from("clubs").select("id, name, short_name, primary_color, secondary_color, crest_path").in("id", clubIds)
+      : { data: [] };
+  const clubById = new Map(
+    (clubRows ?? []).map((c) => [
+      c.id,
+      {
+        name: c.name,
+        shortName: c.short_name,
+        primaryColor: c.primary_color,
+        secondaryColor: c.secondary_color,
+        crestUrl: c.crest_path ? supabase.storage.from("club-crests").getPublicUrl(c.crest_path).data.publicUrl : null,
+      },
+    ]),
+  );
+  const team1Club = team1?.club_id ? clubById.get(team1.club_id) : undefined;
+  const team2Club = team2?.club_id ? clubById.get(team2.club_id) : undefined;
 
   const participants = (participantRows ?? []).flatMap((row) => (row.players ? [{ ...row, players: row.players }] : []));
   const myParticipant = participants.find((p) => p.players.user_id === userId);
@@ -190,8 +211,30 @@ export default async function MatchDetailPage({
     <div className="flex flex-col gap-6 px-4 py-6">
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between gap-2">
-          <h1 className="text-lg font-semibold">
-            {team1?.name ?? es.matches.team1Default} vs. {team2?.name ?? es.matches.team2Default}
+          <h1 className="flex items-center gap-2 text-lg font-semibold">
+            {team1Club && (
+              <ClubCrest
+                crestUrl={team1Club.crestUrl}
+                primaryColor={team1Club.primaryColor}
+                secondaryColor={team1Club.secondaryColor}
+                shortName={team1Club.shortName}
+                name={team1Club.name}
+                size="sm"
+              />
+            )}
+            <span>
+              {team1?.name ?? es.matches.team1Default} vs. {team2?.name ?? es.matches.team2Default}
+            </span>
+            {team2Club && (
+              <ClubCrest
+                crestUrl={team2Club.crestUrl}
+                primaryColor={team2Club.primaryColor}
+                secondaryColor={team2Club.secondaryColor}
+                shortName={team2Club.shortName}
+                name={team2Club.name}
+                size="sm"
+              />
+            )}
           </h1>
           <Badge variant="outline">{es.matches.status[match.status]}</Badge>
         </div>

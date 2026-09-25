@@ -106,3 +106,55 @@ describe("SquadEditor", () => {
     expect(Object.keys(payload.slots[0]!)).toEqual(["slot", "playerId"]);
   });
 });
+
+function renderLineupEditor(excludePlayerIds: string[] = []) {
+  return render(
+    <SquadEditor
+      groupId="g1"
+      squadId={null}
+      kind="lineup"
+      matchId="m1"
+      side={1}
+      initialName="Blancos"
+      initialTeamSize={5}
+      initialFormationCode="1-2-1"
+      initialClubId={null}
+      initialSlots={[]}
+      initialPublished={false}
+      players={[ALTO, BAJO]}
+      shared={[]}
+      settings={defaultGroupSettings.squads}
+      clubs={[]}
+      excludePlayerIds={excludePlayerIds}
+    />,
+  );
+}
+
+describe("SquadEditor lineup mode", () => {
+  it("hides players already placed on the other side", async () => {
+    const user = userEvent.setup();
+    renderLineupEditor(["alto"]);
+
+    await user.click(screen.getByRole("button", { name: `${es.squads.emptySlot} DC` }));
+    const sheet = screen.getByRole("dialog");
+
+    expect(within(sheet).queryByText("Alto")).not.toBeInTheDocument();
+    expect(within(sheet).getByText("Bajo")).toBeInTheDocument();
+  });
+
+  it("saves with the match id and side, and never redirects to a plantillas page", async () => {
+    mockSaveSquad.mockResolvedValue({ ok: true, data: { squadId: "lineup-1" } });
+    const user = userEvent.setup();
+    renderLineupEditor();
+
+    await user.click(screen.getByRole("button", { name: `${es.squads.emptySlot} DC` }));
+    await user.click(screen.getByRole("button", { name: /Alto/ }));
+    await user.click(screen.getByRole("button", { name: es.common.save }));
+
+    expect(mockSaveSquad).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "lineup", matchId: "m1", side: 1 }),
+    );
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(mockRefresh).toHaveBeenCalled();
+  });
+});

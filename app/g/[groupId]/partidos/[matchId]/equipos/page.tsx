@@ -1,14 +1,26 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cn } from "cn";
 import { LineupEditor, type EditorPlayer } from "@/components/match/lineup-editor";
+import { LineupPitchEditors, type LineupSide } from "@/components/squads/lineup-pitch-editors";
 import { es } from "@/messages/es";
 import { createClient, getUserId } from "@/lib/supabase/server";
 import { isGroupAdmin, type GroupRole } from "@/lib/permissions";
+import { loadSquadContext } from "@/lib/server/squad-context";
+import { defaultFormation, type TeamSize } from "@/lib/squads/formations";
 import type { Assignment } from "@/lib/match/lineup";
+
+function parseMode(value: string | string[] | undefined): "lista" | "cancha" {
+  return (Array.isArray(value) ? value[0] : value) === "cancha" ? "cancha" : "lista";
+}
 
 export default async function MatchLineupPage({
   params,
+  searchParams,
 }: PageProps<"/g/[groupId]/partidos/[matchId]/equipos">) {
   const { groupId, matchId } = await params;
+  const sp = await searchParams;
+  const mode = parseMode(sp.modo);
   const userId = await getUserId();
   if (!userId) notFound();
 
@@ -23,6 +35,92 @@ export default async function MatchLineupPage({
   if (!match || match.group_id !== groupId) notFound();
   if (!myRole || !isGroupAdmin(myRole)) notFound();
   if (match.status !== "scheduled") notFound();
+
+  const modeToggle = (
+    <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+      {(
+        [
+          ["lista", es.matches.lineupModeList],
+          ["cancha", es.matches.lineupModePitch],
+        ] as const
+      ).map(([m, label]) => (
+        <Link
+          key={m}
+          href={`?modo=${m}`}
+          className={cn(
+            "flex min-h-11 shrink-0 items-center rounded-full border px-3 text-sm whitespace-nowrap",
+            m === mode ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-foreground",
+          )}
+        >
+          {label}
+        </Link>
+      ))}
+    </div>
+  );
+
+  if (mode === "cancha") {
+    const teamSize = match.team_size as TeamSize;
+
+    const [{ context, settings }, { data: clubRows }, { data: lineupSquads }] = await Promise.all([
+      loadSquadContext(supabase, groupId),
+      supabase
+        .from("clubs")
+        .select("id, name, short_name, primary_color, secondary_color, crest_path")
+        .eq("group_id", groupId)
+        .order("name"),
+      supabase
+        .from("squads")
+        .select("id, side, name, formation, club_id, squad_slots(slot, player_id)")
+        .eq("match_id", matchId)
+        .eq("kind", "lineup"),
+    ]);
+
+    const clubs = (clubRows ?? []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      shortName: c.short_name,
+      primaryColor: c.primary_color,
+      secondaryColor: c.secondary_color,
+      crestUrl: c.crest_path ? supabase.storage.from("club-crests").getPublicUrl(c.crest_path).data.publicUrl : null,
+    }));
+
+    const bySide = new Map((lineupSquads ?? []).map((s) => [s.side, s]));
+    const squad1 = bySide.get(1);
+    const squad2 = bySide.get(2);
+
+    const side1: LineupSide = {
+      squadId: squad1?.id ?? null,
+      name: squad1?.name ?? es.matches.team1Default,
+      formationCode: squad1?.formation ?? defaultFormation(teamSize).code,
+      clubId: squad1?.club_id ?? null,
+      slots: (squad1?.squad_slots ?? []).map((s) => ({ slot: s.slot, playerId: s.player_id })),
+    };
+    const side2: LineupSide = {
+      squadId: squad2?.id ?? null,
+      name: squad2?.name ?? es.matches.team2Default,
+      formationCode: squad2?.formation ?? defaultFormation(teamSize).code,
+      clubId: squad2?.club_id ?? null,
+      slots: (squad2?.squad_slots ?? []).map((s) => ({ slot: s.slot, playerId: s.player_id })),
+    };
+
+    return (
+      <div className="flex flex-col gap-4 px-4 py-6">
+        {modeToggle}
+        <LineupPitchEditors
+          groupId={groupId}
+          matchId={matchId}
+          teamSize={teamSize}
+          players={[...context.players.values()]}
+          shared={[...context.shared]}
+          settings={settings}
+          clubs={clubs}
+          side1={side1}
+          side2={side2}
+          bothSaved={!!side1.squadId && !!side2.squadId}
+        />
+      </div>
+    );
+  }
 
   const [
     { data: playerRows },
@@ -83,7 +181,8 @@ export default async function MatchLineupPage({
   });
 
   return (
-    <div className="px-4 py-6">
+    <div className="flex flex-col gap-4 px-4 py-6">
+      {modeToggle}
       <LineupEditor
         groupId={groupId}
         matchId={matchId}

@@ -574,6 +574,13 @@ export const es = {
     cancelConfirm: "Esta acción no se puede deshacer.",
     startReportingConfirm: "Se cierra el partido y se abre la carga de resultados y puntajes. ¿Seguro?",
     empty: "Todavía no hay partidos.",
+    lineupModeList: "Lista",
+    lineupModePitch: "Cancha",
+    applyLineup: "Usar estas alineaciones",
+    applyLineupConfirm: "Se reemplazan los equipos del partido por las dos alineaciones de la cancha.",
+    lineupApplied: "Alineaciones aplicadas",
+    pickClub: "Club (opcional)",
+    needBothSides: "Armá las dos alineaciones primero.",
     status: {
       scheduled: "Programado",
       reporting: "Cargando resultados",

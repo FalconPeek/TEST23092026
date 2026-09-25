@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -72,6 +72,9 @@ async function shareSquad(squadId: string, name: string) {
 export function SquadEditor({
   groupId,
   squadId,
+  kind = "dream",
+  matchId = null,
+  side = null,
   initialName,
   initialTeamSize,
   initialFormationCode,
@@ -82,9 +85,14 @@ export function SquadEditor({
   shared,
   settings,
   clubs,
+  excludePlayerIds = [],
+  onAssignmentChange,
 }: {
   groupId: string;
   squadId: string | null;
+  kind?: "dream" | "lineup";
+  matchId?: string | null;
+  side?: 1 | 2 | null;
   initialName: string;
   initialTeamSize: TeamSize;
   initialFormationCode: string;
@@ -95,6 +103,10 @@ export function SquadEditor({
   shared: [string, number][];
   settings: SquadSettings;
   clubs: EditorClub[];
+  /** Lineup mode only: players already placed on the other side, hidden from this side's candidates. */
+  excludePlayerIds?: string[];
+  /** Lineup mode only: reports this side's currently-placed player ids up so the other side can exclude them. */
+  onAssignmentChange?: (playerIds: string[]) => void;
 }) {
   const [name, setName] = useState(initialName);
   const [teamSize, setTeamSize] = useState<TeamSize>(initialTeamSize);
@@ -132,10 +144,17 @@ export function SquadEditor({
 
   const sheetPosition = sheetSlot !== null ? formation.slots.find((s) => s.slot === sheetSlot)?.position : undefined;
   const sheetCandidates = useMemo(
-    () => (sheetPosition ? candidatesForSlot(playersById, assignment, sheetPosition) : []),
-    [sheetPosition, playersById, assignment],
+    () =>
+      sheetPosition
+        ? candidatesForSlot(playersById, assignment, sheetPosition).filter((c) => !excludePlayerIds.includes(c.playerId))
+        : [],
+    [sheetPosition, playersById, assignment, excludePlayerIds],
   );
   const sheetHasPlayer = sheetSlot !== null && assignment.has(sheetSlot);
+
+  useEffect(() => {
+    onAssignmentChange?.([...assignment.values()]);
+  }, [assignment, onAssignmentChange]);
 
   function handleTeamSizeChange(value: string) {
     const nextSize = Number(value) as TeamSize;
@@ -169,21 +188,23 @@ export function SquadEditor({
       const result = await saveSquad({
         squadId,
         groupId,
-        kind: "dream",
+        kind,
         name: name.trim(),
         teamSize,
         formation: formation.code,
         slots: [...assignment].map(([slot, playerId]) => ({ slot, playerId })),
         clubId,
-        matchId: null,
-        side: null,
+        matchId,
+        side,
       });
       if (!result.ok) {
         toast.error(result.error);
         return;
       }
       toast.success(es.squads.saved);
-      if (squadId) {
+      if (kind === "lineup") {
+        router.refresh();
+      } else if (squadId) {
         router.refresh();
       } else {
         router.push(`/g/${groupId}/plantillas/${result.data.squadId}`);
@@ -226,21 +247,28 @@ export function SquadEditor({
           <Input id="squad-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} className="h-11" />
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <Label>{es.squads.teamSize}</Label>
-          <Select value={String(teamSize)} onValueChange={handleTeamSizeChange}>
-            <SelectTrigger className="h-11 w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {TEAM_SIZES.map((size) => (
-                <SelectItem key={size} value={String(size)}>
-                  {es.matches.teamSizeOption(size)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {kind === "dream" ? (
+          <div className="flex flex-col gap-1.5">
+            <Label>{es.squads.teamSize}</Label>
+            <Select value={String(teamSize)} onValueChange={handleTeamSizeChange}>
+              <SelectTrigger className="h-11 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TEAM_SIZES.map((size) => (
+                  <SelectItem key={size} value={String(size)}>
+                    {es.matches.teamSizeOption(size)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            <Label>{es.squads.teamSize}</Label>
+            <p className="text-sm text-muted-foreground">{es.matches.teamSizeOption(teamSize)}</p>
+          </div>
+        )}
 
         <div className="flex flex-col gap-1.5">
           <Label>{es.squads.formation}</Label>
@@ -262,7 +290,7 @@ export function SquadEditor({
 
         {clubs.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <Label>{es.clubs.title}</Label>
+            <Label>{kind === "lineup" ? es.matches.pickClub : es.clubs.title}</Label>
             <Select value={clubId ?? "none"} onValueChange={(v) => setClubId(v === "none" ? null : v)}>
               <SelectTrigger className="h-11 w-full">
                 <SelectValue />
@@ -308,7 +336,7 @@ export function SquadEditor({
         {es.common.save}
       </Button>
 
-      {squadId && (
+      {kind === "dream" && squadId && (
         <div className="flex flex-wrap items-center gap-2">
           <Button type="button" variant="outline" className="h-11" onClick={handleTogglePublished} disabled={publishPending}>
             {published ? es.squads.unpublish : es.squads.publish}
