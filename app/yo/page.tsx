@@ -48,7 +48,12 @@ export default async function DashboardPage({ searchParams }: PageProps<"/yo">) 
     <div className="flex flex-1 flex-col">
       <TopBar title={es.dashboard.title} backHref="/g" />
       <main className="flex flex-1 flex-col gap-6 px-4 py-6">
-        <h1 className="text-xl font-semibold">{es.dashboard.title}</h1>
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-xl font-semibold">{es.dashboard.title}</h1>
+          <Link href="/yo/ajustes" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
+            {es.nav.settings}
+          </Link>
+        </div>
 
         {groups.length === 0 || !groupId ? (
           <p className="text-sm text-muted-foreground">{es.dashboard.noGroups}</p>

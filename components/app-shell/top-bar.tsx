@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft, LogOut, User } from "lucide-react";
+import { ArrowLeft, LogOut, Settings, User } from "lucide-react";
+import { NotificationBell } from "@/components/app-shell/notification-bell";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,16 +30,21 @@ export async function TopBar({
   const userId = await getUserId();
   let displayName = "";
   let avatarUrl: string | null = null;
+  let unreadCount = 0;
 
   if (userId) {
     const supabase = await createClient();
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("display_name, avatar_url")
-      .eq("id", userId)
-      .maybeSingle();
+    const [{ data: profile }, { count }] = await Promise.all([
+      supabase.from("profiles").select("display_name, avatar_url").eq("id", userId).maybeSingle(),
+      supabase
+        .from("notifications")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .is("read_at", null),
+    ]);
     displayName = profile?.display_name ?? "";
     avatarUrl = profile?.avatar_url ?? null;
+    unreadCount = count ?? 0;
   }
 
   return (
@@ -53,31 +59,40 @@ export async function TopBar({
       )}
       <div className="min-w-0 flex-1 truncate text-lg font-semibold">{title}</div>
       {userId && (
-        <DropdownMenu>
-          <DropdownMenuTrigger className="shrink-0 rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
-            <Avatar>
-              {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
-              <AvatarFallback>{initials(displayName)}</AvatarFallback>
-            </Avatar>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem asChild>
-              <Link href="/yo">
-                <User />
-                {es.nav.me}
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild variant="destructive">
-              <form action={signOut} className="contents">
-                <button type="submit" className="flex w-full items-center gap-1.5">
-                  <LogOut />
-                  {es.auth.signOut}
-                </button>
-              </form>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <>
+          <NotificationBell userId={userId} initialCount={unreadCount} />
+          <DropdownMenu>
+            <DropdownMenuTrigger className="shrink-0 rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+              <Avatar>
+                {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
+                <AvatarFallback>{initials(displayName)}</AvatarFallback>
+              </Avatar>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href="/yo">
+                  <User />
+                  {es.nav.me}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/yo/ajustes">
+                  <Settings />
+                  {es.nav.settings}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild variant="destructive">
+                <form action={signOut} className="contents">
+                  <button type="submit" className="flex w-full items-center gap-1.5">
+                    <LogOut />
+                    {es.auth.signOut}
+                  </button>
+                </form>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </>
       )}
     </header>
   );
