@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -88,6 +89,14 @@ export default async function GroupSettingsPage({ params }: PageProps<"/g/[group
           />
         </section>
       )}
+
+      <Link href={`/g/${groupId}/clubes`}>
+        <Card className="transition-colors hover:bg-muted/50">
+          <CardContent className="flex min-h-11 items-center justify-between py-3 text-sm font-medium">
+            {es.clubs.title}
+          </CardContent>
+        </Card>
+      </Link>
 
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-medium text-muted-foreground">{es.settings.members.heading}</h2>
